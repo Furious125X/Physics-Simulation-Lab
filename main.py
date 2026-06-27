@@ -29,7 +29,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    ball.update(dt)
+    ball.update(dt, HEIGHT)
 
     screen.fill((20, 20, 20))
 
