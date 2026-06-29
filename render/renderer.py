@@ -5,10 +5,10 @@ class Renderer:
     def __init__(self, screen):
         self.screen = screen
 
-    def draw_ball(self, body):
+    def draw_body(self, body):
         pygame.draw.circle(
             self.screen,
             (255, 255, 255),
-            (int(body.x), int(body.y)),
+            (int(body.position.x), int(body.position.y)),
             body.radius
         )

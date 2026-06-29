@@ -2,7 +2,7 @@ import pygame
 
 from physics.body import Body
 from render.renderer import Renderer
-
+from physics.world import World
 
 WIDTH = 800
 HEIGHT = 600
@@ -17,7 +17,17 @@ clock = pygame.time.Clock()
 
 renderer = Renderer(screen)
 
-ball = Body(400, 100)
+world = World(gravity=500, floor_y=HEIGHT)
+
+ball1 = Body(0, 1000)
+ball2 = Body(400, 1000)
+ball3 = Body(550, 1000)
+
+world.add_body(ball1)
+world.add_body(ball2)
+world.add_body(ball3)
+
+ball1.velocity.x = 250
 
 running = True
 
@@ -29,11 +39,11 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    ball.update(dt, HEIGHT)
+    world.update(dt)
 
     screen.fill((20, 20, 20))
 
-    renderer.draw_ball(ball)
+    world.draw(renderer)
 
     pygame.display.flip()
 

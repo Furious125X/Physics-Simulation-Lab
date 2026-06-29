@@ -1,13 +1,10 @@
 import pygame
-
+from physics.vector import Vector2
 
 class Body:
     def __init__(self, x, y, radius=20):
-        self.x = x
-        self.y = y
-
-        self.vx = 0
-        self.vy = 0
+        self.position = Vector2(x, y)
+        self.velocity = Vector2()
 
         self.radius = radius
 
@@ -16,18 +13,17 @@ class Body:
 
     def update(self, dt, floor_y):
         # 1. Apply gravity
-        self.vy += self.gravity * dt
+        self.velocity.y += self.gravity * dt
 
-        # 2. Move
-        self.x += self.vx * dt
-        self.y += self.vy * dt
+       # 2. Move
+        self.position += self.velocity * dt
 
         # 3. Collision with floor
-        if self.y + self.radius > floor_y:
-            self.y = floor_y - self.radius  # reset position
+        if self.position.y + self.radius > floor_y:
+            self.position.y = floor_y - self.radius  # reset position
 
-            self.vy = -self.vy * self.restitution  # bounce
+            self.velocity.y = -self.velocity.y * self.restitution  # bounce
 
             # stop tiny jittering
-            if abs(self.vy) < 10:
-                self.vy = 0
+            if abs(self.velocity.y) < 10:
+                self.velocity.y = 0
