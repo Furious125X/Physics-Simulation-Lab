@@ -51,3 +51,6 @@ class Vector2:
             self.x / scalar,
             self.y / scalar
         )
+    
+    def dot(self, other):
+        return self.x * other.x + self.y * other.y

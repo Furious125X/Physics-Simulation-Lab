@@ -2,10 +2,10 @@ import pygame
 from physics.vector import Vector2
 
 class Body:
-    def __init__(self, x, y, radius=20):
+    def __init__(self, x, y, radius=20, mass=1):
         self.position = Vector2(x, y)
         self.velocity = Vector2()
-
+        self.mass = mass
         self.radius = radius
 
         self.gravity = 500
@@ -27,3 +27,5 @@ class Body:
             # stop tiny jittering
             if abs(self.velocity.y) < 10:
                 self.velocity.y = 0
+        
+        

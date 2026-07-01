@@ -21,13 +21,14 @@ world = World(gravity=500, floor_y=HEIGHT)
 
 ball1 = Body(0, 1000)
 ball2 = Body(400, 1000)
-ball3 = Body(550, 1000)
+#ball3 = Body(550, 1000)
 
 world.add_body(ball1)
 world.add_body(ball2)
-world.add_body(ball3)
+#world.add_body(ball3)
 
 ball1.velocity.x = 250
+ball2.mass = 5
 
 running = True
 

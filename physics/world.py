@@ -32,6 +32,7 @@ class World:
                 if distance < radius_sum:
                     self.resolve_collision(body1, body2)
 
+    
     def resolve_collision(self, body1, body2):
         difference = body2.position - body1.position
         distance = difference.length()
@@ -47,4 +48,13 @@ class World:
         body1.position -= collision_normal * (overlap / 2)
         body2.position += collision_normal * (overlap / 2)
 
-        body1.velocity, body2.velocity = body2.velocity, body1.velocity
+        relative_velocity = body2.velocity - body1.velocity
+        velocity_along_normal = relative_velocity.dot(collision_normal)
+        if velocity_along_normal > 0 :
+            return
+        e = min(body1.restitution, body2.restitution)
+        j = -(1 + e) * velocity_along_normal
+        j /= (1 / body1.mass) + (1 / body2.mass)
+        impulse = collision_normal * j
+        body1.velocity -= impulse * (1 / body1.mass)
+        body2.velocity += impulse * (1 / body2.mass)
