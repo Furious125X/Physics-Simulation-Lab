@@ -8,7 +8,7 @@ class Renderer:
     def draw_body(self, body):
         pygame.draw.circle(
             self.screen,
-            (255, 255, 255),
+            body.color,
             (int(body.position.x), int(body.position.y)),
             body.radius
         )

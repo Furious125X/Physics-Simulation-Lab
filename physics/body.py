@@ -1,12 +1,14 @@
 import pygame
 from physics.vector import Vector2
+import math
 
 class Body:
-    def __init__(self, x, y, radius=20, mass=1):
+    def __init__(self, x, y, radius=20, density=0.002, color=(255,255,255)):
         self.position = Vector2(x, y)
         self.velocity = Vector2()
-        self.mass = mass
+        self.mass = density * math.pi * radius * radius
         self.radius = radius
+        self.color = color
 
         self.gravity = 500
         self.restitution = 0.8  # bounce energy loss
