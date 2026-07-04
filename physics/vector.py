@@ -54,3 +54,8 @@ class Vector2:
     
     def dot(self, other):
         return self.x * other.x + self.y * other.y
+    
+    def __neg__(self):
+        self.x = -self.x
+        self.y = -self.y
+        return  self

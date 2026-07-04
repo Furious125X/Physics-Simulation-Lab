@@ -3,11 +3,17 @@ class World:
         self.gravity = gravity
         self.floor_y = floor_y
         self.bodies = []
+        self.springs = []
 
     def add_body(self, body):
         self.bodies.append(body)
 
+    def add_spring(self, spring):
+        self.springs.append(spring)
+
     def update(self, dt):
+        for spring in self.springs:
+            spring.update()
         for body in self.bodies:
             body.gravity = self.gravity
             body.update(dt, self.floor_y)

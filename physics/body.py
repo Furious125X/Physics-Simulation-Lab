@@ -9,13 +9,16 @@ class Body:
         self.mass = density * math.pi * radius * radius
         self.radius = radius
         self.color = color
-
+        self.force = Vector2()
         self.gravity = 500
         self.restitution = 0.8  # bounce energy loss
 
     def update(self, dt, floor_y):
         # 1. Apply gravity
-        self.velocity.y += self.gravity * dt
+        gravity_force = Vector2( 0, self.mass * self.gravity)
+        self.apply_force(gravity_force)
+        acceleration = self.force / self.mass
+        self.velocity += acceleration * dt
 
        # 2. Move
         self.position += self.velocity * dt
@@ -29,5 +32,11 @@ class Body:
             # stop tiny jittering
             if abs(self.velocity.y) < 10:
                 self.velocity.y = 0
+        
+        #4. reset forces
+        self.force = Vector2()
+    
+    def apply_force(self, force):
+        self.force += force
         
         
