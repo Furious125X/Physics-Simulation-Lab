@@ -21,6 +21,8 @@ class World:
         self.check_collisions()
 
     def draw(self, renderer):
+        for spring in self.springs:
+            renderer.draw_spring(spring)
         for body in self.bodies:
             renderer.draw_body(body)
 

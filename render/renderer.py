@@ -12,3 +12,7 @@ class Renderer:
             (int(body.position.x), int(body.position.y)),
             body.radius
         )
+    
+    def draw_spring(self, spring) :
+        pygame.draw.line(self.screen,(255,255,255), (int(spring.body1.position.x), int(spring.body1.position.y)), 
+        (int(spring.body2.position.x), int(spring.body2.position.y)),spring.width)

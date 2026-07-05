@@ -56,6 +56,4 @@ class Vector2:
         return self.x * other.x + self.y * other.y
     
     def __neg__(self):
-        self.x = -self.x
-        self.y = -self.y
-        return  self
+        return Vector2(-self.x, -self.y)

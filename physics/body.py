@@ -1,4 +1,3 @@
-import pygame
 from physics.vector import Vector2
 import math
 
@@ -12,13 +11,19 @@ class Body:
         self.force = Vector2()
         self.gravity = 500
         self.restitution = 0.8  # bounce energy loss
+        self.linear_damping = 2
 
     def update(self, dt, floor_y):
         # 1. Apply gravity
         gravity_force = Vector2( 0, self.mass * self.gravity)
         self.apply_force(gravity_force)
+
+        damping_force = -self.velocity * self.linear_damping
+        self.apply_force(damping_force)
+
         acceleration = self.force / self.mass
         self.velocity += acceleration * dt
+
 
        # 2. Move
         self.position += self.velocity * dt
