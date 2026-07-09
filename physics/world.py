@@ -4,6 +4,7 @@ class World:
         self.floor_y = floor_y
         self.bodies = []
         self.springs = []
+        self.constraints = []
 
     def add_body(self, body):
         self.bodies.append(body)
@@ -11,12 +12,19 @@ class World:
     def add_spring(self, spring):
         self.springs.append(spring)
 
+    def add_constraint(self, constraint):
+        self.constraints.append(constraint)
+        
+
+
     def update(self, dt):
         for spring in self.springs:
             spring.update()
         for body in self.bodies:
             body.gravity = self.gravity
             body.update(dt, self.floor_y)
+        for constraint in self.constraints:
+            constraint.solve()
 
         self.check_collisions()
 
@@ -25,6 +33,8 @@ class World:
             renderer.draw_spring(spring)
         for body in self.bodies:
             renderer.draw_body(body)
+        for constraint in self.constraints:
+            renderer.draw_constraint(constraint)
 
     def check_collisions(self):
         for i in range(len(self.bodies)):

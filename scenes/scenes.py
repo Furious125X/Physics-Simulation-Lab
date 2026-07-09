@@ -4,7 +4,8 @@ import pygame
 from physics.body import Body
 from physics.spring import Spring
 from physics.world import World
-
+from physics.constraints import DistanceConstraint
+from physics.vector import Vector2
 
 class Scene:
 
@@ -45,6 +46,16 @@ class SpringScene(Scene):
             color=self.random_color()
         )
 
+        ball3 = Body(
+            500,
+            150,
+            20,
+            color=self.random_color()
+        )
+
+        ball3anchor = Vector2(400, 150)
+        ball3constraint = DistanceConstraint(ball3, ball3anchor, 100)
+
         spring = Spring(
             ball1,
             ball2,
@@ -57,6 +68,8 @@ class SpringScene(Scene):
         self.world.add_body(ball1)
         self.world.add_body(ball2)
         self.world.add_spring(spring)
+        self.world.add_constraint(ball3constraint)
+        self.world.add_body(ball3)
 
     def handle_event(self, event):
 
