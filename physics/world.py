@@ -1,3 +1,5 @@
+from physics.grid import SpatialGrid
+
 class World:
     def __init__(self, gravity=500, floor_y=600):
         self.gravity = gravity
@@ -5,6 +7,7 @@ class World:
         self.bodies = []
         self.springs = []
         self.constraints = []
+        self.grid = SpatialGrid(100)
 
     def add_body(self, body):
         self.bodies.append(body)
@@ -26,6 +29,7 @@ class World:
         for constraint in self.constraints:
             constraint.solve()
 
+        self.grid.build(self.bodies)
         self.check_collisions()
 
     def draw(self, renderer):
@@ -37,18 +41,19 @@ class World:
             renderer.draw_constraint(constraint)
 
     def check_collisions(self):
-        for i in range(len(self.bodies)):
-            for j in range(i + 1, len(self.bodies)):
-                body1 = self.bodies[i]
-                body2 = self.bodies[j]
+        for cell in self.grid.cells.values():
+            for i in range(len(cell)):
+                for j in range(i + 1, len(cell)):
+                    body1 = cell[i]
+                    body2 = cell[j]
 
-                difference = body2.position - body1.position
-                distance = difference.length()
+                    difference = body2.position - body1.position
+                    distance = difference.length()
 
-                radius_sum = body1.radius + body2.radius
+                    radius_sum = body1.radius + body2.radius
 
-                if distance < radius_sum:
-                    self.resolve_collision(body1, body2)
+                    if distance < radius_sum:
+                        self.resolve_collision(body1, body2)
 
     
     def resolve_collision(self, body1, body2):
