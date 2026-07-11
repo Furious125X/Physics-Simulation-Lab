@@ -7,16 +7,21 @@ from physics.world import World
 from physics.constraints import DistanceConstraint
 from physics.vector import Vector2
 
+
 class Scene:
 
     def __init__(self):
-
-        self.world = World(
-            gravity=500,
-            floor_y=600
-        )
+        self.world = World(gravity=500, floor_y=600)
+        self.selected_body = None
 
     def update(self, dt):
+        if self.selected_body is not None:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            mouse_position = Vector2(mouse_x, mouse_y)
+
+            self.selected_body.position = mouse_position
+            self.selected_body.velocity = Vector2()
+
         self.world.update(dt)
 
     def draw(self, renderer):
@@ -24,6 +29,15 @@ class Scene:
 
     def handle_event(self, event):
         pass
+
+    def find_body_at_position(self, position):
+        for body in self.world.bodies:
+            difference = position - body.position
+
+            if difference.length_squared() <= body.radius ** 2:
+                return body
+
+        return None
 
 
 class SpringScene(Scene):
@@ -54,7 +68,12 @@ class SpringScene(Scene):
         )
 
         ball3anchor = Vector2(400, 150)
-        ball3constraint = DistanceConstraint(ball3, ball3anchor, 100)
+
+        ball3constraint = DistanceConstraint(
+            ball3,
+            ball3anchor,
+            100
+        )
 
         spring = Spring(
             ball1,
@@ -67,24 +86,29 @@ class SpringScene(Scene):
 
         self.world.add_body(ball1)
         self.world.add_body(ball2)
+        self.world.add_body(ball3)
+
         self.world.add_spring(spring)
         self.world.add_constraint(ball3constraint)
-        self.world.add_body(ball3)
 
     def handle_event(self, event):
 
         if event.type == pygame.MOUSEBUTTONDOWN:
 
             mouse_x, mouse_y = pygame.mouse.get_pos()
+            mouse_position = Vector2(mouse_x, mouse_y)
 
-            body = Body(
-                mouse_x,
-                mouse_y,
-                random.randint(10, 40),
-                color=self.random_color()
-            )
+            self.selected_body = self.find_body_at_position(mouse_position)
 
-            self.world.add_body(body)
+        elif event.type == pygame.MOUSEBUTTONUP:
+
+            self.selected_body = None
+        
+        elif event.type == pygame.MOUSEWHEEL:
+            mouse_x, mouse_y = pygame.mouse.get_pos() 
+            body = Body( mouse_x, mouse_y, random.randint(10, 40), color=self.random_color() ) 
+            self.world.add_body(body)            
+
 
     @staticmethod
     def random_color():
