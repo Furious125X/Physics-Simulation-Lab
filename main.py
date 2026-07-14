@@ -1,7 +1,7 @@
 import pygame
 
 from render.renderer import Renderer
-from scenes.scenes import SpringScene, CollisionScene
+from scenes.scenes import SpringScene, CollisionScene, NewtonCradleScene
 
 WIDTH = 800
 HEIGHT = 600
@@ -41,6 +41,9 @@ while running:
             elif event.key == pygame.K_2:
                 current_scene = CollisionScene()
 
+            elif event.key == pygame.K_3:
+                current_scene = NewtonCradleScene()
+                
         current_scene.handle_event(event)
 
     while accumulator >= FIXED_DT:
@@ -52,7 +55,7 @@ while running:
     current_scene.draw(renderer)
 
     menu = font.render(
-        "1: Spring Demo   2: Collision Demo",
+        "1: Spring Demo   2: Collision Demo  3: Newton's Cradle",
         True,
         (255, 255, 255)
     )
