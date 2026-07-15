@@ -8,6 +8,7 @@ class World:
         self.springs = []
         self.constraints = []
         self.grid = SpatialGrid(100)
+        self.constraint_iterations = 10
 
     def add_body(self, body):
         self.bodies.append(body)
@@ -26,11 +27,16 @@ class World:
         for body in self.bodies:
             body.gravity = self.gravity
             body.update(dt, self.floor_y)
-        for constraint in self.constraints:
-            constraint.solve()
+       
+        for _ in range(self.constraint_iterations):
+            
+            for constraint in self.constraints:
+                constraint.solve()
+            self.grid.build(self.bodies)
+            self.check_collisions()
 
-        self.grid.build(self.bodies)
-        self.check_collisions()
+
+        
 
     def draw(self, renderer):
         for spring in self.springs:

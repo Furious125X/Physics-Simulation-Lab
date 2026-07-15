@@ -4,7 +4,7 @@ import pygame
 from physics.body import Body
 from physics.spring import Spring
 from physics.world import World
-from physics.constraints import DistanceConstraint
+from physics.constraints import AnchorConstraint, DistanceConstraint
 from physics.vector import Vector2
 
 
@@ -82,7 +82,7 @@ class SpringScene(Scene):
 
         ball3anchor = Vector2(400, 150)
 
-        ball3constraint = DistanceConstraint(
+        ball3constraint = AnchorConstraint(
             ball3,
             ball3anchor,
             100
@@ -208,7 +208,7 @@ class NewtonCradleScene(Scene):
                 color=self.random_color()
             )
 
-            constraint = DistanceConstraint(
+            constraint = AnchorConstraint(
                 ball,
                 anchor,
                 rope_length
@@ -222,3 +222,145 @@ class NewtonCradleScene(Scene):
 
         # Pull the first ball back so it starts swinging
         self.first_ball.position.x -= 120
+
+class RopeScene(Scene):
+
+    def __init__(self):
+
+        super().__init__()
+
+        segments = 20
+        segment_radius = 8
+        segment_length = 20
+
+        start_x = 400
+        start_y = 50
+        anchor = Vector2(start_x, start_y)
+
+        self.rope_bodies = []
+        for i in range(segments):
+
+            segment = Body(start_x, start_y  + segment_length * i, segment_radius, color=self.random_color())
+            self.rope_bodies.append(segment)
+            self.world.add_body(segment)
+        
+        first_segment = AnchorConstraint(self.rope_bodies[0], anchor, 0)
+        self.world.add_constraint(first_segment)
+
+        for i  in range(len(self.rope_bodies) - 1) :
+            connector = DistanceConstraint(self.rope_bodies[i], self.rope_bodies[i+1], segment_length)
+            self.world.add_constraint(connector)
+
+    def handle_event(self, event):
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            mouse_position = Vector2(mouse_x, mouse_y)
+
+            self.selected_body = self.find_body_at_position(mouse_position)
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+
+            self.selected_body = None
+
+        elif event.type == pygame.MOUSEWHEEL:
+
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+
+            body = Body(
+                mouse_x,
+                mouse_y,
+                random.randint(10, 40),
+                color=self.random_color()
+            )
+
+            self.world.add_body(body)
+
+
+class ClothScene(Scene):
+
+    def __init__(self):
+
+        super().__init__()
+
+        rows = 12
+        cols = 18
+
+        spacing = 25
+        radius = 5
+
+        start_x = 180
+        start_y = 40
+
+        grid = []
+
+        # Create all bodies
+        for row in range(rows):
+
+            current_row = []
+
+            for col in range(cols):
+
+                x = start_x + col * spacing
+                y = start_y + row * spacing
+
+                body = Body(x, y, radius, color=self.random_color())
+
+                self.world.add_body(body)
+                current_row.append(body)
+
+            grid.append(current_row)
+
+        # Pin the top row
+        for body in grid[0]:
+
+            anchor = Vector2(body.position.x, body.position.y)
+
+            constraint = AnchorConstraint(body, anchor, 0)
+
+            self.world.add_constraint(constraint)
+
+        # Horizontal constraints
+        for row in range(rows):
+
+            for col in range(cols - 1):
+
+                constraint = DistanceConstraint(grid[row][col], grid[row][col + 1], spacing)
+
+                self.world.add_constraint(constraint)
+
+        # Vertical constraints
+        for row in range(rows - 1):
+
+            for col in range(cols):
+
+                constraint = DistanceConstraint(grid[row][col], grid[row + 1][col], spacing)
+
+                self.world.add_constraint(constraint)
+    
+    def handle_event(self, event):
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            mouse_position = Vector2(mouse_x, mouse_y)
+
+            self.selected_body = self.find_body_at_position(mouse_position)
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+
+            self.selected_body = None
+
+        elif event.type == pygame.MOUSEWHEEL:
+
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+
+            body = Body(
+                mouse_x,
+                mouse_y,
+                random.randint(10, 40),
+                color=self.random_color()
+            )
+
+            self.world.add_body(body)
