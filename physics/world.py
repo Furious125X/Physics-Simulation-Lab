@@ -2,7 +2,9 @@ from physics.grid import SpatialGrid
 
 
 class World:
+
     def __init__(self, gravity=500, floor_y=600):
+
         self.gravity = gravity
         self.floor_y = floor_y
 
@@ -30,16 +32,18 @@ class World:
 
         for _ in range(self.substeps):
 
-            # Apply spring forces
+            # Spring forces
             for spring in self.springs:
                 spring.update()
 
-            # Integrate forces
+            # Force integration
             for body in self.bodies:
+                if body.sleeping :
+                    continue
                 body.gravity = self.gravity
                 body.integrate_forces(sub_dt)
 
-            # Solve constraints and collisions
+            # Constraint solving
             for _ in range(self.constraint_iterations):
 
                 for constraint in self.constraints:
@@ -48,13 +52,17 @@ class World:
                 self.grid.build(self.bodies)
                 self.check_collisions()
 
-            # Integrate positions
+            # Position integration
             for body in self.bodies:
+                if body.sleeping :
+                    continue
                 body.integrate_velocity(sub_dt)
                 body.solve_floor(self.floor_y)
                 body.clear_forces()
+                body.update_sleep(sub_dt)
 
     def draw(self, renderer):
+
         for spring in self.springs:
             renderer.draw_spring(spring)
 
@@ -65,13 +73,20 @@ class World:
             renderer.draw_constraint(constraint)
 
     def check_collisions(self):
-        for cell in self.grid.cells.values():
 
-            for i in range(len(cell)):
-                for j in range(i + 1, len(cell)):
+        for (cell_x, cell_y), cell in self.grid.cells.items():
 
-                    body1 = cell[i]
-                    body2 = cell[j]
+            neighbor_bodies = self.grid.get_neighbor_cells(cell_x, cell_y)
+
+            for body1 in cell:
+
+                for body2 in neighbor_bodies:
+
+                    if body1 is body2:
+                        continue
+
+                    if id(body1) >= id(body2):
+                        continue
 
                     difference = body2.position - body1.position
                     distance = difference.length()
@@ -112,3 +127,6 @@ class World:
 
         body1.velocity -= impulse * (1 / body1.mass)
         body2.velocity += impulse * (1 / body2.mass)
+        body1.wake()
+        body2.wake()
+        

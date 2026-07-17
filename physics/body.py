@@ -20,6 +20,11 @@ class Body:
         self.restitution = 0.8
         self.linear_damping = 2
 
+        self.sleeping = False
+        self.sleep_timer = 0
+        self.sleep_velocity = 5      # pixels/sec
+        self.sleep_time = 0.5        # seconds before sleeping
+
     def integrate_forces(self, dt):
 
         gravity_force = Vector2(0, self.mass * self.gravity)
@@ -50,3 +55,19 @@ class Body:
 
     def apply_force(self, force):
         self.force += force
+
+    def wake(self):
+        self.sleeping = False
+        self.sleep_timer = 0
+    
+    def update_sleep(self, dt):
+
+        if self.velocity.length() < self.sleep_velocity:
+            self.sleep_timer += dt
+
+            if self.sleep_timer >= self.sleep_time:
+                self.sleeping = True
+                self.velocity = Vector2()
+
+        else:
+            self.wake()
