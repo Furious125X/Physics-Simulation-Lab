@@ -57,3 +57,6 @@ class Vector2:
     
     def __neg__(self):
         return Vector2(-self.x, -self.y)
+    
+    def copy(self):
+        return Vector2(self.x, self.y)

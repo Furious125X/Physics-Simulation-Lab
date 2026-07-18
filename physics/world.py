@@ -58,6 +58,7 @@ class World:
                     continue
                 body.integrate_velocity(sub_dt)
                 body.solve_floor(self.floor_y)
+                body.update_velocity(sub_dt)
                 body.clear_forces()
                 body.update_sleep(sub_dt)
 
@@ -106,11 +107,15 @@ class World:
 
         radius_sum = body1.radius + body2.radius
         overlap = radius_sum - distance
-
+        correction_percent = 0.2
+        slop = 0.01
+        corrected_overlap = max(overlap - slop, 0)
+        
         collision_normal = difference.normalize()
+        correction = collision_normal * (corrected_overlap * correction_percent / 2)
 
-        body1.position -= collision_normal * (overlap / 2)
-        body2.position += collision_normal * (overlap / 2)
+        body1.position -= correction
+        body2.position += correction
 
         relative_velocity = body2.velocity - body1.velocity
         velocity_along_normal = relative_velocity.dot(collision_normal)
