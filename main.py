@@ -1,7 +1,7 @@
 import pygame
 
 from render.renderer import Renderer
-from scenes.scenes import SpringScene, CollisionScene, NewtonCradleScene, RopeScene, ClothScene
+from scenes.scenes import SpringScene, CollisionScene, NewtonCradleScene, RopeScene, ClothScene, StaticCollisionScene
 
 WIDTH = 800
 HEIGHT = 600
@@ -49,6 +49,9 @@ while running:
             
             elif event.key == pygame.K_5:
                 current_scene = ClothScene()
+            
+            elif event.key == pygame.K_6:
+                current_scene = StaticCollisionScene()
                 
         current_scene.handle_event(event)
 
@@ -61,7 +64,7 @@ while running:
     current_scene.draw(renderer)
 
     menu = font.render(
-        "1: Spring Demo   2: Collision Demo  3: Newton's Cradle 4: Rope Scene 5: Cloth Scene",
+        "1: Spring Demo   2: Collision Demo  3: Newton's Cradle 4: Rope Scene 5: Cloth Scene 6:Floor Test",
         True,
         (255, 255, 255)
     )

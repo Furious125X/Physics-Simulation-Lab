@@ -38,7 +38,7 @@ class World:
 
             # Force integration
             for body in self.bodies:
-                if body.sleeping :
+                if body.sleeping or body.is_static:
                     continue
                 body.gravity = self.gravity
                 body.integrate_forces(sub_dt)
@@ -54,10 +54,10 @@ class World:
 
             # Position integration
             for body in self.bodies:
-                if body.sleeping :
+                if body.sleeping or body.is_static:
                     continue
                 body.integrate_velocity(sub_dt)
-                body.solve_floor(self.floor_y)
+                #body.solve_floor(self.floor_y)
                 body.update_velocity(sub_dt)
                 body.clear_forces()
                 body.update_sleep(sub_dt)
@@ -99,6 +99,9 @@ class World:
 
     def resolve_collision(self, body1, body2):
 
+        if body1.is_static and body2.is_static:
+            return
+        
         difference = body2.position - body1.position
         distance = difference.length()
 
@@ -111,11 +114,15 @@ class World:
         slop = 0.01
         corrected_overlap = max(overlap - slop, 0)
         
+        total_inverse_mass = body1.inverse_mass + body2.inverse_mass
+        if total_inverse_mass == 0:
+            return
+            
         collision_normal = difference.normalize()
-        correction = collision_normal * (corrected_overlap * correction_percent / 2)
+        correction = collision_normal * (corrected_overlap * correction_percent)
 
-        body1.position -= correction
-        body2.position += correction
+        body1.position -= correction * (body1.inverse_mass / total_inverse_mass)
+        body2.position += correction * (body2.inverse_mass / total_inverse_mass)
 
         relative_velocity = body2.velocity - body1.velocity
         velocity_along_normal = relative_velocity.dot(collision_normal)
@@ -126,12 +133,12 @@ class World:
         e = min(body1.restitution, body2.restitution)
 
         j = -(1 + e) * velocity_along_normal
-        j /= (1 / body1.mass) + (1 / body2.mass)
+        j /= body1.inverse_mass + body2.inverse_mass
 
         impulse = collision_normal * j
 
-        body1.velocity -= impulse * (1 / body1.mass)
-        body2.velocity += impulse * (1 / body2.mass)
+        body1.velocity -= impulse * body1.inverse_mass
+        body2.velocity += impulse * body2.inverse_mass
         body1.wake()
         body2.wake()
         

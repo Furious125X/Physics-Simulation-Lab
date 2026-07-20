@@ -364,3 +364,26 @@ class ClothScene(Scene):
             )
 
             self.world.add_body(body)
+
+
+class StaticCollisionScene(Scene):
+    def __init__(self):
+
+        super().__init__()
+
+        ball1 = Body(
+            400,
+            100,
+            20,
+            color=self.random_color()
+        )
+
+        ball2 = Body(
+            400,
+            1000,
+            650,
+            color=self.random_color(), 
+            is_static=True
+        )
+        self.world.add_body(ball1)
+        self.world.add_body(ball2)

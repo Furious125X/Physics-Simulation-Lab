@@ -4,12 +4,21 @@ import math
 
 class Body:
 
-    def __init__(self, x, y, radius=20, density=0.002, color=(255, 255, 255)):
+    def __init__(self, x, y, radius=20, density=0.002, color=(255, 255, 255), is_static=False):
         self.position = Vector2(x, y)
         self.previous_position = self.position.copy()
         self.velocity = Vector2()
+        
+        self.is_static = is_static
 
         self.mass = density * math.pi * radius * radius
+        if self.is_static:
+            self.mass = float("inf")
+        
+        if self.mass == float("inf"):
+            self.inverse_mass = 0
+        else:
+            self.inverse_mass = 1 / self.mass
 
         self.radius = radius
         self.color = color
@@ -27,6 +36,7 @@ class Body:
         self.sleep_time = 0.5
 
         self.hit_floor = False
+
 
     def integrate_forces(self, dt):
 
