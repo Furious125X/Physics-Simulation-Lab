@@ -42,6 +42,8 @@ class World:
                     continue
                 body.gravity = self.gravity
                 body.integrate_forces(sub_dt)
+                body.integrate_velocity(sub_dt)
+
 
             # Constraint solving
             for _ in range(self.constraint_iterations):
@@ -56,8 +58,7 @@ class World:
             for body in self.bodies:
                 if body.sleeping or body.is_static:
                     continue
-                body.integrate_velocity(sub_dt)
-                #body.solve_floor(self.floor_y)
+                body.solve_floor(self.floor_y)
                 body.update_velocity(sub_dt)
                 body.clear_forces()
                 body.update_sleep(sub_dt)

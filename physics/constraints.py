@@ -25,11 +25,11 @@ class DistanceConstraint:
 
         distance = difference.length()
 
-        inv_mass1 = 1/self.body1.mass
-        inv_mass2 = 1/self.body2.mass
+        inv_mass1 = self.body1.inverse_mass
+        inv_mass2 = self.body2.inverse_mass
         total_inverse_mass = inv_mass1 + inv_mass2
 
-        if distance == 0:
+        if distance == 0 or total_inverse_mass == 0:
             return
 
         direction = difference.normalize()
