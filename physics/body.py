@@ -8,13 +8,13 @@ class Body:
         self.position = Vector2(x, y)
         self.previous_position = self.position.copy()
         self.velocity = Vector2()
-        
+
         self.is_static = is_static
 
         self.mass = density * math.pi * radius * radius
         if self.is_static:
             self.mass = float("inf")
-        
+
         if self.mass == float("inf"):
             self.inverse_mass = 0
         else:
@@ -30,13 +30,12 @@ class Body:
         self.restitution = 0.8
         self.linear_damping = 2
 
-        self.sleeping = False
+        self.sleeping = self.is_static
         self.sleep_timer = 0
         self.sleep_velocity = 5
         self.sleep_time = 0.5
 
         self.hit_floor = False
-
 
     def integrate_forces(self, dt):
 
@@ -81,6 +80,10 @@ class Body:
         self.force = Vector2()
 
     def apply_force(self, force):
+
+        if force.length_squared() > 0:
+            self.wake()
+
         self.force += force
 
     def wake(self):
@@ -88,6 +91,9 @@ class Body:
         self.sleep_timer = 0
 
     def update_sleep(self, dt):
+
+        if self.sleeping:
+            return
 
         if self.velocity.length() < self.sleep_velocity:
 

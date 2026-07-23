@@ -87,6 +87,9 @@ class World:
                     if body1 is body2:
                         continue
 
+                    if body1.sleeping and body2.sleeping:
+                        continue
+
                     if id(body1) >= id(body2):
                         continue
 
@@ -105,11 +108,17 @@ class World:
         
         difference = body2.position - body1.position
         distance = difference.length()
-
-        if distance == 0:
-            return
-
         radius_sum = body1.radius + body2.radius
+
+        relative_velocity = body2.velocity - body1.velocity
+        
+        if distance == 0:
+            if relative_velocity.length_squared() == 0:
+                return
+            collision_normal = relative_velocity.normalize()
+        else:
+            collision_normal = difference / distance
+
         overlap = radius_sum - distance
         correction_percent = 0.2
         slop = 0.01
@@ -119,7 +128,7 @@ class World:
         if total_inverse_mass == 0:
             return
             
-        collision_normal = difference.normalize()
+
         correction = collision_normal * (corrected_overlap * correction_percent)
 
         body1.position -= correction * (body1.inverse_mass / total_inverse_mass)
@@ -134,7 +143,7 @@ class World:
         e = min(body1.restitution, body2.restitution)
 
         j = -(1 + e) * velocity_along_normal
-        j /= body1.inverse_mass + body2.inverse_mass
+        j /= total_inverse_mass
 
         impulse = collision_normal * j
 

@@ -23,7 +23,7 @@ class Scene:
             difference = mouse_position - self.selected_body.position
             force = difference * self.mouse_stiffness
             drag = self.selected_body.velocity * -8
-
+            self.selected_body.wake()
             self.selected_body.apply_force(force)
             self.selected_body.apply_force(drag)
 
