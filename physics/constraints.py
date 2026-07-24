@@ -15,13 +15,15 @@ class AnchorConstraint:
 
 
 class DistanceConstraint:
-    def __init__(self, body1, body2, length):
+    def __init__(self, body1, body2, length, stiffness=1.0):
         self.body1 = body1
         self.body2 = body2
         self.length = length
+        self.stiffness = stiffness
 
     def solve(self):
         difference = self.body2.position - self.body1.position
+        slop = 0.01
 
         distance = difference.length()
 
@@ -35,8 +37,11 @@ class DistanceConstraint:
         direction = difference.normalize()
 
         error = distance - self.length
+
+        if abs(error) < slop :
+            return
         
-        correction = direction * error
+        correction = direction * error * self.stiffness
 
         self.body1.position += correction * (inv_mass1/total_inverse_mass)
         self.body2.position -= correction * (inv_mass2/total_inverse_mass)

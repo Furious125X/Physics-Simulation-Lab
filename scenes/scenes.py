@@ -281,8 +281,15 @@ class RopeScene(Scene):
 class ClothScene(Scene):
 
     def __init__(self):
-
         super().__init__()
+
+        # Cloth does not need body-body collisions yet.
+        # Turning them off here removes the expensive work that was freezing the scene.
+        self.world.enable_collisions = False
+
+        # Lower solver budget just for cloth so it stays responsive.
+        self.world.constraint_iterations = 6
+        self.world.substeps = 2
 
         rows = 12
         cols = 18
@@ -297,11 +304,9 @@ class ClothScene(Scene):
 
         # Create all bodies
         for row in range(rows):
-
             current_row = []
 
             for col in range(cols):
-
                 x = start_x + col * spacing
                 y = start_y + row * spacing
 
@@ -314,46 +319,34 @@ class ClothScene(Scene):
 
         # Pin the top row
         for body in grid[0]:
-
             anchor = Vector2(body.position.x, body.position.y)
-
             constraint = AnchorConstraint(body, anchor, 0)
-
             self.world.add_constraint(constraint)
 
         # Horizontal constraints
         for row in range(rows):
-
             for col in range(cols - 1):
-
                 constraint = DistanceConstraint(grid[row][col], grid[row][col + 1], spacing)
-
                 self.world.add_constraint(constraint)
 
         # Vertical constraints
         for row in range(rows - 1):
-
             for col in range(cols):
-
                 constraint = DistanceConstraint(grid[row][col], grid[row + 1][col], spacing)
-
                 self.world.add_constraint(constraint)
-    
+
     def handle_event(self, event):
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-
             mouse_x, mouse_y = pygame.mouse.get_pos()
             mouse_position = Vector2(mouse_x, mouse_y)
 
             self.selected_body = self.find_body_at_position(mouse_position)
 
         elif event.type == pygame.MOUSEBUTTONUP:
-
             self.selected_body = None
 
         elif event.type == pygame.MOUSEWHEEL:
-
             mouse_x, mouse_y = pygame.mouse.get_pos()
 
             body = Body(
