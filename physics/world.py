@@ -18,7 +18,6 @@ class World:
         self.substeps = 4
         self.reverse_solver = False
 
-        # Lets cloth/other scenes disable expensive body-body collisions
         self.enable_collisions = True
 
     def add_body(self, body):
@@ -34,6 +33,9 @@ class World:
         sub_dt = dt / self.substeps
 
         for _ in range(self.substeps):
+
+            for body in self.bodies:
+                body.hit_floor = False
 
             # Spring forces
             for spring in self.springs:
@@ -65,7 +67,6 @@ class World:
                 self.grid.build(self.bodies)
                 self.check_collisions()
 
-                # Floor again after collisions so objects don't get pushed through it
                 for body in self.bodies:
                     if body.sleeping or body.is_static:
                         continue

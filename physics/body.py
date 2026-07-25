@@ -38,7 +38,6 @@ class Body:
         self.hit_floor = False
 
     def integrate_forces(self, dt):
-
         gravity_force = Vector2(0, self.mass * self.gravity)
         self.apply_force(gravity_force)
 
@@ -53,22 +52,15 @@ class Body:
         self.position += self.velocity * dt
 
     def solve_floor(self, floor_y):
-
-        self.hit_floor = False
-
         if self.position.y + self.radius > floor_y:
-
             self.position.y = floor_y - self.radius
-
             self.velocity.y = -self.velocity.y * self.restitution
-
             self.hit_floor = True
 
             if abs(self.velocity.y) < 10:
                 self.velocity.y = 0
 
     def update_velocity(self, dt):
-
         new_velocity = (self.position - self.previous_position) / dt
 
         self.velocity.x = new_velocity.x
@@ -80,28 +72,26 @@ class Body:
         self.force = Vector2()
 
     def apply_force(self, force):
-
         if force.length_squared() > 0:
             self.wake()
 
         self.force += force
 
     def wake(self):
+        if self.is_static:
+            return
         self.sleeping = False
         self.sleep_timer = 0
 
     def update_sleep(self, dt):
-
-        if self.sleeping:
+        if self.is_static or self.sleeping:
             return
 
         if self.velocity.length() < self.sleep_velocity:
-
             self.sleep_timer += dt
 
             if self.sleep_timer >= self.sleep_time:
                 self.sleeping = True
                 self.velocity = Vector2()
-
         else:
             self.wake()
