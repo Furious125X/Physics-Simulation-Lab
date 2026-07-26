@@ -166,5 +166,28 @@ class World:
         body1.velocity -= impulse * body1.inverse_mass
         body2.velocity += impulse * body2.inverse_mass
 
+        new_relative_velocity =  body2.velocity - body1.velocity
+        tangent = new_relative_velocity - collision_normal * new_relative_velocity.dot(collision_normal)
+        if tangent.length_squared() < 1e-8:
+            return
+
+        tangent = tangent.normalize()
+
+        jt = -new_relative_velocity.dot(tangent)
+        jt /= total_inverse_mass
+
+        mu_static = (body1.static_friction + body2.static_friction) / 2
+        mu_dynamic = (body1.dynamic_friction + body2.dynamic_friction) / 2
+
+
+        if abs(jt) < j * mu_static :
+            friction_impulse = tangent * jt
+        else :
+            friction_impulse = tangent * (-mu_dynamic * j)
+
+        body1.velocity -= friction_impulse * body1.inverse_mass
+        body2.velocity += friction_impulse * body2.inverse_mass
+
+
         body1.wake()
         body2.wake()

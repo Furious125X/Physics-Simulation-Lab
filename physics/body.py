@@ -28,6 +28,8 @@ class Body:
         self.gravity = 500
 
         self.restitution = 0.8
+        self.static_friction = 0.6
+        self.dynamic_friction = 0.4
         self.linear_damping = 2
 
         self.sleeping = self.is_static
