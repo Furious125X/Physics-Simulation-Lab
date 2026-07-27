@@ -1,5 +1,5 @@
 import pygame
-
+import math
 from physics.constraints import AnchorConstraint, DistanceConstraint
 
 
@@ -14,6 +14,14 @@ class Renderer:
             (int(body.position.x), int(body.position.y)),
             body.radius
         )
+        end_x = body.position.x + math.cos(body.angle) * body.radius
+        end_y = body.position.y + math.sin(body.angle) * body.radius
+        pygame.draw.line(
+                    self.screen,
+                    (255, 255, 255),
+                    (int(body.position.x), int(body.position.y)),
+                    (end_x, end_y)
+                )
 
     def draw_spring(self, spring):
         pygame.draw.line(

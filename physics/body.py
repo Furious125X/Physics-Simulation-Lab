@@ -20,10 +20,21 @@ class Body:
         else:
             self.inverse_mass = 1 / self.mass
 
+        if self.is_static:
+            self.inertia = float("inf")
+            self.inverse_inertia = 0
+        else:
+            self.inertia = 0.5 * self.mass * radius * radius
+            self.inverse_inertia = 1 / self.inertia
+
         self.radius = radius
         self.color = color
 
         self.force = Vector2()
+        self.angle = 0.0
+        self.angular_velocity = 0.0
+
+        self.torque = 0.0
 
         self.gravity = 500
 
@@ -49,9 +60,13 @@ class Body:
         acceleration = self.force / self.mass
         self.velocity += acceleration * dt
 
+        angular_acceleration = self.torque * self.inverse_inertia
+        self.angular_velocity += angular_acceleration * dt
+
     def integrate_velocity(self, dt):
         self.previous_position = self.position.copy()
         self.position += self.velocity * dt
+        self.angle += self.angular_velocity * dt
 
     def solve_floor(self, floor_y):
         if self.position.y + self.radius > floor_y:
@@ -72,12 +87,38 @@ class Body:
 
     def clear_forces(self):
         self.force = Vector2()
+        self.torque = 0.0
 
     def apply_force(self, force):
         if force.length_squared() > 0:
             self.wake()
 
         self.force += force
+
+    def apply_torque(self, torque):
+        if torque != 0:
+            self.wake()
+
+        self.torque += torque
+
+    def apply_impulse(self, impulse, contact_vector):
+        if self.is_static:
+            return
+
+        self.velocity += impulse * self.inverse_mass
+        self.angular_velocity += self.cross_2d(contact_vector, impulse) * self.inverse_inertia
+
+    @staticmethod
+    def cross_2d(a, b):
+        return a.x * b.y - a.y * b.x
+
+    def get_contact_velocity(self, contact_vector):
+        rotational_velocity = Vector2(
+            -self.angular_velocity * contact_vector.y,
+            self.angular_velocity * contact_vector.x
+        )
+        return self.velocity + rotational_velocity
+
 
     def wake(self):
         if self.is_static:
@@ -95,5 +136,6 @@ class Body:
             if self.sleep_timer >= self.sleep_time:
                 self.sleeping = True
                 self.velocity = Vector2()
+                self.angular_velocity = 0.0
         else:
             self.wake()

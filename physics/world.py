@@ -1,5 +1,6 @@
 from physics.grid import SpatialGrid
 import random
+from physics.vector import Vector2
 
 
 class World:
@@ -60,7 +61,7 @@ class World:
                 for body in self.bodies:
                     if body.sleeping or body.is_static:
                         continue
-                    body.solve_floor(self.floor_y)
+                    self.resolve_floor_contact(body)
 
             # Body-body collisions only when enabled
             if self.enable_collisions:
@@ -120,6 +121,7 @@ class World:
                         self.resolve_collision(body1, body2)
 
     def resolve_collision(self, body1, body2):
+
         if body1.is_static and body2.is_static:
             return
 
@@ -127,30 +129,45 @@ class World:
         distance = difference.length()
         radius_sum = body1.radius + body2.radius
 
-        relative_velocity = body2.velocity - body1.velocity
-
+        # Collision normal
         if distance == 0:
-            if relative_velocity.length_squared() == 0:
-                return
-            collision_normal = relative_velocity.normalize()
+            collision_normal = (body2.position - body1.position).normalize()
+            if collision_normal.length_squared() == 0:
+                collision_normal.x = 1
         else:
             collision_normal = difference / distance
 
+        # Positional correction
         overlap = radius_sum - distance
-        correction_percent = 0.2
-        slop = 0.01
-        corrected_overlap = max(overlap - slop, 0)
+
+        if overlap <= 0:
+            return
 
         total_inverse_mass = body1.inverse_mass + body2.inverse_mass
+
         if total_inverse_mass == 0:
             return
+
+        correction_percent = 0.2
+        slop = 0.01
+
+        corrected_overlap = max(overlap - slop, 0)
 
         correction = collision_normal * (corrected_overlap * correction_percent)
 
         body1.position -= correction * (body1.inverse_mass / total_inverse_mass)
         body2.position += correction * (body2.inverse_mass / total_inverse_mass)
 
-        relative_velocity = body2.velocity - body1.velocity
+        # Contact vectors
+        ra = collision_normal * body1.radius
+        rb = -collision_normal * body2.radius
+
+        # Contact-point velocities
+        velocity_a = body1.get_contact_velocity(ra)
+        velocity_b = body2.get_contact_velocity(rb)
+
+        relative_velocity = velocity_b - velocity_a
+
         velocity_along_normal = relative_velocity.dot(collision_normal)
 
         if velocity_along_normal > 0:
@@ -163,31 +180,90 @@ class World:
 
         impulse = collision_normal * j
 
-        body1.velocity -= impulse * body1.inverse_mass
-        body2.velocity += impulse * body2.inverse_mass
+        body1.apply_impulse(-impulse, ra)
+        body2.apply_impulse(impulse, rb)
 
-        new_relative_velocity =  body2.velocity - body1.velocity
-        tangent = new_relative_velocity - collision_normal * new_relative_velocity.dot(collision_normal)
+        velocity_a = body1.get_contact_velocity(ra)
+        velocity_b = body2.get_contact_velocity(rb)
+
+        relative_velocity = velocity_b - velocity_a
+
+        tangent = relative_velocity - collision_normal * relative_velocity.dot(collision_normal)
+
         if tangent.length_squared() < 1e-8:
+            body1.wake()
+            body2.wake()
             return
 
         tangent = tangent.normalize()
 
-        jt = -new_relative_velocity.dot(tangent)
+        jt = -relative_velocity.dot(tangent)
         jt /= total_inverse_mass
 
         mu_static = (body1.static_friction + body2.static_friction) / 2
         mu_dynamic = (body1.dynamic_friction + body2.dynamic_friction) / 2
 
-
-        if abs(jt) < j * mu_static :
+        if abs(jt) < j * mu_static:
             friction_impulse = tangent * jt
-        else :
+        else:
             friction_impulse = tangent * (-mu_dynamic * j)
 
-        body1.velocity -= friction_impulse * body1.inverse_mass
-        body2.velocity += friction_impulse * body2.inverse_mass
-
+        body1.apply_impulse(-friction_impulse, ra)
+        body2.apply_impulse(friction_impulse, rb)
 
         body1.wake()
         body2.wake()
+
+
+    def resolve_floor_contact(self, body):
+
+        penetration = (body.position.y + body.radius) - self.floor_y
+        if penetration <= 0:
+            return
+
+        body.hit_floor = True
+
+        # Push the body out of the floor
+        body.position.y -= penetration
+
+        # Floor normal points upward
+        normal = Vector2(0, -1)
+
+        # Contact point on the body (bottom of the circle)
+        ra = Vector2(0, body.radius)
+
+        # Contact-point velocity on the body
+        contact_velocity = body.get_contact_velocity(ra)
+        velocity_along_normal = contact_velocity.dot(normal)
+
+        # Already moving away from the floor
+        if velocity_along_normal > 0:
+            return
+
+        # Normal impulse
+        j = -(1 + body.restitution) * velocity_along_normal
+        j /= body.inverse_mass
+
+        impulse = normal * j
+        body.apply_impulse(impulse, ra)
+
+        # Recompute contact velocity after the normal impulse
+        contact_velocity = body.get_contact_velocity(ra)
+
+        # Tangent / friction
+        tangent = contact_velocity - normal * contact_velocity.dot(normal)
+
+        if tangent.length_squared() < 1e-8:
+            return
+
+        tangent = tangent.normalize()
+
+        jt = -contact_velocity.dot(tangent)
+        jt /= body.inverse_mass
+
+        if abs(jt) < j * body.static_friction:
+            friction_impulse = tangent * jt
+        else:
+            friction_impulse = tangent * (-j * body.dynamic_friction)
+
+        body.apply_impulse(friction_impulse, ra)
