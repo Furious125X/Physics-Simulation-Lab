@@ -1,30 +1,52 @@
+from physics.vector import Vector2
+
+
 class AnchorConstraint:
-    def __init__(self, body, anchor, length):
+    def __init__(self, body, anchor, length, compliance=0.0):
         self.body = body
         self.anchor = anchor
         self.length = length
+        self.compliance = compliance
+        self.lambda_accum = 0.0
 
-    def solve(self):
+    def solve(self, dt):
         difference = self.body.position - self.anchor
+        distance = difference.length()
 
-        if difference.length() == 0:
+        if distance == 0:
             return
 
-        direction = difference.normalize()
-        self.body.position = self.anchor + direction * self.length
+        inv_mass = self.body.inverse_mass
+        if inv_mass == 0:
+            return
+
+        direction = difference / distance
+        C = distance - self.length
+
+        if abs(C) < 0.01:
+            return
+
+        alpha = self.compliance / (dt * dt)
+        delta_lambda = (C - alpha * self.lambda_accum) / (inv_mass + alpha)
+        self.lambda_accum += delta_lambda
+
+        self.body.position -= direction * delta_lambda * inv_mass
+
+    def begin_substep(self):
+        self.lambda_accum = 0.0
 
 
 class DistanceConstraint:
-    def __init__(self, body1, body2, length, stiffness=1.0):
+    def __init__(self, body1, body2, length, stiffness=1.0, compliance=0.0):
         self.body1 = body1
         self.body2 = body2
         self.length = length
         self.stiffness = stiffness
+        self.compliance = compliance
+        self.lambda_accum = 0.0
 
-    def solve(self):
+    def solve(self, dt):
         difference = self.body2.position - self.body1.position
-        slop = 0.01
-
         distance = difference.length()
 
         inv_mass1 = self.body1.inverse_mass
@@ -34,14 +56,18 @@ class DistanceConstraint:
         if distance == 0 or total_inverse_mass == 0:
             return
 
-        direction = difference.normalize()
+        direction = difference / distance
+        C = distance - self.length
 
-        error = distance - self.length
-
-        if abs(error) < slop :
+        if abs(C) < 0.01:
             return
-        
-        correction = direction * error * self.stiffness
 
-        self.body1.position += correction * (inv_mass1/total_inverse_mass)
-        self.body2.position -= correction * (inv_mass2/total_inverse_mass)
+        alpha = self.compliance / (dt * dt)
+        delta_lambda = (C - alpha * self.lambda_accum) / (total_inverse_mass + alpha)
+        self.lambda_accum += delta_lambda
+
+        self.body1.position += direction * delta_lambda * inv_mass1
+        self.body2.position -= direction * delta_lambda * inv_mass2
+
+    def begin_substep(self):
+        self.lambda_accum = 0.0

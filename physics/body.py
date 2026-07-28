@@ -33,7 +33,6 @@ class Body:
         self.force = Vector2()
         self.angle = 0.0
         self.angular_velocity = 0.0
-
         self.torque = 0.0
 
         self.gravity = 500
@@ -46,6 +45,7 @@ class Body:
         self.sleeping = self.is_static
         self.sleep_timer = 0
         self.sleep_velocity = 5
+        self.sleep_angular_velocity = 1.0
         self.sleep_time = 0.5
 
         self.hit_floor = False
@@ -101,12 +101,17 @@ class Body:
 
         self.torque += torque
 
-    def apply_impulse(self, impulse, contact_vector):
+    def apply_impulse(self, impulse, contact_vector=None):
         if self.is_static:
             return
 
+        if impulse.length_squared() > 0:
+            self.wake()
+
         self.velocity += impulse * self.inverse_mass
-        self.angular_velocity += self.cross_2d(contact_vector, impulse) * self.inverse_inertia
+
+        if contact_vector is not None:
+            self.angular_velocity += self.cross_2d(contact_vector, impulse) * self.inverse_inertia
 
     @staticmethod
     def cross_2d(a, b):
@@ -119,7 +124,6 @@ class Body:
         )
         return self.velocity + rotational_velocity
 
-
     def wake(self):
         if self.is_static:
             return
@@ -130,7 +134,7 @@ class Body:
         if self.is_static or self.sleeping:
             return
 
-        if self.velocity.length() < self.sleep_velocity:
+        if self.velocity.length() < self.sleep_velocity and abs(self.angular_velocity) < self.sleep_angular_velocity:
             self.sleep_timer += dt
 
             if self.sleep_timer >= self.sleep_time:
