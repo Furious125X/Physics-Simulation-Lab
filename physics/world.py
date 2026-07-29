@@ -21,6 +21,10 @@ class World:
 
         self.enable_collisions = True
 
+        self.resting_velocity_threshold = 5.0
+
+        self.collision_iterations = 4
+
     def add_body(self, body):
         self.bodies.append(body)
 
@@ -63,14 +67,18 @@ class World:
                         continue
                     self.resolve_floor_contact(body)
 
-            if self.enable_collisions:
-                self.grid.build(self.bodies)
-                self.check_collisions()
+            self.grid.build(self.bodies)
+            contacts = self.check_collisions()
+
+            for _ in range(self.collision_iterations):
+                for body1, body2 in contacts:
+                    self.resolve_collision(body1, body2)
 
                 for body in self.bodies:
                     if body.sleeping or body.is_static:
                         continue
                     self.resolve_floor_contact(body)
+
 
             for body in self.bodies:
                 if body.sleeping or body.is_static:
@@ -93,6 +101,7 @@ class World:
 
     def check_collisions(self):
         cells = list(self.grid.cells.items())
+        contacts = []
 
         if self.reverse_solver:
             cells.reverse()
@@ -115,8 +124,12 @@ class World:
                     distance = difference.length()
                     radius_sum = body1.radius + body2.radius
 
+
+
                     if distance < radius_sum:
-                        self.resolve_collision(body1, body2)
+                        contacts.append((body1, body2))
+
+        return contacts
 
     def resolve_collision(self, body1, body2):
         if body1.is_static and body2.is_static:
@@ -178,7 +191,11 @@ class World:
         if normal_denominator == 0:
             return
 
-        e = min(body1.restitution, body2.restitution)
+        if abs(velocity_along_normal) < self.resting_velocity_threshold:
+            e = 0.0
+        else:
+            e = min(body1.restitution, body2.restitution)
+
         j = -(1 + e) * velocity_along_normal
         j /= normal_denominator
 
@@ -252,11 +269,19 @@ class World:
         if normal_denominator == 0:
             return
 
-        j = -(1 + body.restitution) * velocity_along_normal
+        if abs(velocity_along_normal) < self.resting_velocity_threshold:
+            restitution = 0.0
+        else:
+            restitution = body.restitution
+
+        j = -(1 + restitution) * velocity_along_normal
         j /= normal_denominator
 
         impulse = normal * j
         body.apply_impulse(impulse, ra)
+
+        if abs(body.velocity.y) < 0.1:
+            body.velocity.y = 0.0
 
         contact_velocity = body.get_contact_velocity(ra)
         tangent = contact_velocity - normal * contact_velocity.dot(normal)
