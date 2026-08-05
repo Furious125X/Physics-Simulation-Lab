@@ -41,6 +41,7 @@ class World:
 
             for body in self.bodies:
                 body.hit_floor = False
+                body.impulse_velocity_delta = Vector2()
 
             for spring in self.springs:
                 spring.update()

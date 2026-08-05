@@ -363,8 +363,8 @@ class StaticCollisionScene(Scene):
 
         ball2 = Body(
             400,
-            1000,
-            650,
+            550,
+            50,
             color=self.random_color(), 
             is_static=True
         )

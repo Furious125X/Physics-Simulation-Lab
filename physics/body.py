@@ -8,6 +8,7 @@ class Body:
         self.position = Vector2(x, y)
         self.previous_position = self.position.copy()
         self.velocity = Vector2()
+        self.impulse_velocity_delta = Vector2()
 
         self.is_static = is_static
 
@@ -40,7 +41,7 @@ class Body:
         self.restitution = 0.8
         self.static_friction = 0.6
         self.dynamic_friction = 0.4
-        self.linear_damping = 2
+        self.linear_damping = 0.8
 
         self.sleeping = self.is_static
         self.sleep_timer = 0
@@ -54,7 +55,7 @@ class Body:
         gravity_force = Vector2(0, self.mass * self.gravity)
         self.apply_force(gravity_force)
 
-        damping_force = -self.velocity * self.linear_damping
+        damping_force = -self.velocity * self.linear_damping * self.mass
         self.apply_force(damping_force)
 
         acceleration = self.force / self.mass
@@ -78,12 +79,12 @@ class Body:
                 self.velocity.y = 0
 
     def update_velocity(self, dt):
-        new_velocity = (self.position - self.previous_position) / dt
+        reconstructed_velocity = (self.position - self.previous_position) / dt
 
-        self.velocity.x = new_velocity.x
+        self.velocity.x = (reconstructed_velocity.x + self.impulse_velocity_delta.x)
 
         if not self.hit_floor:
-            self.velocity.y = new_velocity.y
+            self.velocity.y = ( reconstructed_velocity.y + self.impulse_velocity_delta.y)
 
     def clear_forces(self):
         self.force = Vector2()
@@ -108,10 +109,13 @@ class Body:
         if impulse.length_squared() > 0:
             self.wake()
 
-        self.velocity += impulse * self.inverse_mass
+        velocity_change = impulse * self.inverse_mass
+
+        self.velocity += velocity_change
+        self.impulse_velocity_delta += velocity_change
 
         if contact_vector is not None:
-            self.angular_velocity += self.cross_2d(contact_vector, impulse) * self.inverse_inertia
+            self.angular_velocity += (self.cross_2d(contact_vector, impulse) * self.inverse_inertia)
 
     @staticmethod
     def cross_2d(a, b):
