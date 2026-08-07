@@ -355,17 +355,19 @@ class StaticCollisionScene(Scene):
         super().__init__()
 
         ball1 = Body(
-            400,
             100,
+            250,
             20,
             color=self.random_color()
         )
 
+        ball1.velocity.x = 2500
+
         ball2 = Body(
-            400,
-            550,
+            650,
+            250,
             50,
-            color=self.random_color(), 
+            color=self.random_color(),
             is_static=True
         )
         self.world.add_body(ball1)

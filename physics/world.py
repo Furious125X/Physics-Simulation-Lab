@@ -52,6 +52,7 @@ class World:
                 body.gravity = self.gravity
                 body.integrate_forces(sub_dt)
                 body.integrate_velocity(sub_dt)
+                self.sweep_floor_contact(body)
 
             for constraint in self.constraints:
                 constraint.begin_substep()
@@ -248,8 +249,12 @@ class World:
         body1.wake()
         body2.wake()
 
-    def resolve_floor_contact(self, body):
+    def resolve_floor_contact(self, body, assume_contact=False):
         penetration = (body.position.y + body.radius) - self.floor_y
+
+        if not assume_contact and penetration <= 0:
+            return
+        
         if penetration <= 0:
             return
 
@@ -306,3 +311,30 @@ class World:
             friction_impulse = tangent * (-j * body.dynamic_friction)
 
         body.apply_impulse(friction_impulse, ra)
+
+    def sweep_floor_contact(self, body):
+        previous_bottom = body.previous_position.y + body.radius
+        current_bottom = body.position.y + body.radius
+
+        if previous_bottom < self.floor_y and current_bottom >= self.floor_y:
+            delta_bottom = current_bottom - previous_bottom
+
+            if delta_bottom == 0:
+                return
+
+            t = (self.floor_y - previous_bottom) / delta_bottom
+
+            if t < 0.0 or t > 1.0:
+                return
+
+            move = body.position - body.previous_position
+            body.position = body.previous_position + move * t
+
+            body.position.y = self.floor_y - body.radius
+
+            body.hit_floor = True
+
+            self.resolve_floor_contact(body, assume_contact=True)
+
+
+    
