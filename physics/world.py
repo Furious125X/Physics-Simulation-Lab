@@ -22,7 +22,6 @@ class World:
         self.enable_collisions = True
 
         self.resting_velocity_threshold = 5.0
-
         self.collision_iterations = 4
 
     def add_body(self, body):
@@ -71,6 +70,37 @@ class World:
 
             self.grid.build(self.bodies)
             contacts = self.check_collisions()
+            contact_keys = set()
+            for body1, body2 in contacts:
+                key = (id(body1), id(body2)) if id(body1) < id(body2) else (id(body2), id(body1))
+                contact_keys.add(key)
+
+            ccd_contacts = []
+
+            body_count = len(self.bodies)
+            for i in range(body_count):
+                body1 = self.bodies[i]
+                for j in range(i + 1, body_count):
+                    body2 = self.bodies[j]
+
+                    if body1.sleeping and body2.sleeping:
+                        continue
+
+                    if body1.is_static and body2.is_static:
+                        continue
+
+                    key = (id(body1), id(body2)) if id(body1) < id(body2) else (id(body2), id(body1))
+                    if key in contact_keys:
+                        continue
+
+                    t = self.sweep_circle_contact(body1, body2)
+                    if t is not None:
+                        ccd_contacts.append((t, body1, body2))
+
+            ccd_contacts.sort(key=lambda item: item[0])
+
+            for t, body1, body2 in ccd_contacts:
+                self.resolve_ccd_contact(body1, body2, t, sub_dt)
 
             for _ in range(self.collision_iterations):
                 for body1, body2 in contacts:
@@ -80,7 +110,6 @@ class World:
                     if body.sleeping or body.is_static:
                         continue
                     self.resolve_floor_contact(body)
-
 
             for body in self.bodies:
                 if body.sleeping or body.is_static:
@@ -126,12 +155,31 @@ class World:
                     distance = difference.length()
                     radius_sum = body1.radius + body2.radius
 
-
-
                     if distance < radius_sum:
                         contacts.append((body1, body2))
 
         return contacts
+
+    def resolve_ccd_contact(self, body1, body2, t, sub_dt):
+        move1 = body1.position - body1.previous_position
+        move2 = body2.position - body2.previous_position
+
+        body1.position = body1.previous_position + move1 * t
+        body2.position = body2.previous_position + move2 * t
+
+        self.resolve_collision(body1, body2)
+
+        remaining_dt = sub_dt * (1.0 - t)
+        if remaining_dt <= 0:
+            return
+
+        if not body1.is_static:
+            body1.position += body1.velocity * remaining_dt
+            body1.angle += body1.angular_velocity * remaining_dt
+
+        if not body2.is_static:
+            body2.position += body2.velocity * remaining_dt
+            body2.angle += body2.angular_velocity * remaining_dt
 
     def resolve_collision(self, body1, body2):
         if body1.is_static and body2.is_static:
@@ -248,13 +296,15 @@ class World:
 
         body1.wake()
         body2.wake()
+        self.wake_neighbours(body1)
+        self.wake_neighbours(body2)
 
     def resolve_floor_contact(self, body, assume_contact=False):
         penetration = (body.position.y + body.radius) - self.floor_y
 
         if not assume_contact and penetration <= 0:
             return
-        
+
         if penetration <= 0:
             return
 
@@ -311,6 +361,8 @@ class World:
             friction_impulse = tangent * (-j * body.dynamic_friction)
 
         body.apply_impulse(friction_impulse, ra)
+        body.wake()
+        self.wake_neighbours(body)
 
     def sweep_floor_contact(self, body):
         previous_bottom = body.previous_position.y + body.radius
@@ -329,12 +381,68 @@ class World:
 
             move = body.position - body.previous_position
             body.position = body.previous_position + move * t
-
             body.position.y = self.floor_y - body.radius
-
             body.hit_floor = True
 
             self.resolve_floor_contact(body, assume_contact=True)
 
+    def sweep_circle_contact(self, body1, body2):
+        p1 = body1.previous_position
+        p2 = body2.previous_position
 
-    
+        c1 = body1.position
+        c2 = body2.position
+
+        d1 = c1 - p1
+        d2 = c2 - p2
+        rel_motion = d1 - d2
+
+        p = p1 - p2
+        radius_sum = body1.radius + body2.radius
+
+        if p.dot(p) < radius_sum * radius_sum:
+            return None
+
+        a = rel_motion.dot(rel_motion)
+        if a == 0:
+            return None
+
+        b = 2 * p.dot(rel_motion)
+        c = p.dot(p) - radius_sum * radius_sum
+
+        if b >= 0 and c > 0:
+            return None
+
+        discriminant = b * b - 4 * a * c
+        if discriminant < 0:
+            return None
+
+        sqrt_disc = discriminant ** 0.5
+
+        t1 = (-b - sqrt_disc) / (2 * a)
+        t2 = (-b + sqrt_disc) / (2 * a)
+
+        valid_times = []
+        if 0.0 <= t1 <= 1.0:
+            valid_times.append(t1)
+        if 0.0 <= t2 <= 1.0:
+            valid_times.append(t2)
+
+        if not valid_times:
+            return None
+
+        return min(valid_times)
+
+    def wake_neighbours(self, body):
+        cell_x = int(body.position.x // self.grid.cell_size)
+        cell_y = int(body.position.y // self.grid.cell_size)
+
+        for neighbour in self.grid.get_neighbor_cells(cell_x, cell_y):
+            if neighbour is body:
+                continue
+
+            difference = neighbour.position - body.position
+            if difference.length_squared() <= (body.radius + neighbour.radius) ** 2:
+                neighbour.wake()
+
+
