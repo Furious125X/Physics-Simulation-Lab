@@ -52,6 +52,9 @@ while running:
             
             elif event.key == pygame.K_6:
                 current_scene = StaticCollisionScene()
+
+            elif event.key == pygame.K_0:
+                current_scene.world.debug_draw = not current_scene.world.debug_draw
                 
         current_scene.handle_event(event)
 
@@ -62,6 +65,7 @@ while running:
     screen.fill((20, 20, 20))
 
     current_scene.draw(renderer)
+    current_scene.world.draw_debug(renderer)
 
     menu = font.render(
         "1: Spring Demo   2: Collision Demo  3: Newton's Cradle 4: Rope Scene 5: Cloth Scene 6:Floor Test",

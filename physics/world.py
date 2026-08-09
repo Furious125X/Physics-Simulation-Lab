@@ -1,6 +1,7 @@
 from physics.grid import SpatialGrid
 from physics.vector import Vector2
 import random
+from physics.constraints import DistanceConstraint
 
 
 class World:
@@ -23,6 +24,8 @@ class World:
 
         self.resting_velocity_threshold = 5.0
         self.collision_iterations = 4
+
+        self.debug_draw = False
 
     def add_body(self, body):
         self.bodies.append(body)
@@ -118,6 +121,8 @@ class World:
                 body.clear_forces()
                 body.update_sleep(sub_dt)
 
+            self.apply_island_sleep(contacts)
+
             self.reverse_solver = not self.reverse_solver
 
     def draw(self, renderer):
@@ -129,6 +134,21 @@ class World:
 
         for constraint in self.constraints:
             renderer.draw_constraint(constraint)
+
+
+    def draw_debug(self, renderer):
+        if not self.debug_draw:
+            return
+
+        for body in self.bodies:
+            renderer.draw_body_debug(body)
+
+        for spring in self.springs:
+            renderer.draw_spring_debug(spring)
+
+        for constraint in self.constraints:
+            renderer.draw_constraint_debug(constraint)
+
 
     def check_collisions(self):
         cells = list(self.grid.cells.items())
@@ -446,3 +466,76 @@ class World:
                 neighbour.wake()
 
 
+    def build_islands(self, contacts):
+        adjacency = {body: set() for body in self.bodies if not body.is_static}
+
+        for constraint in self.constraints:
+            if isinstance(constraint, DistanceConstraint):
+                body1 = constraint.body1
+                body2 = constraint.body2
+
+                if body1.is_static or body2.is_static:
+                    continue
+
+                adjacency[body1].add(body2)
+                adjacency[body2].add(body1)
+
+        for body1, body2 in contacts:
+            if body1.is_static or body2.is_static:
+                continue
+
+            adjacency[body1].add(body2)
+            adjacency[body2].add(body1)
+
+        islands = []
+        visited = set()
+
+        for body in adjacency:
+            if body in visited:
+                continue
+
+            stack = [body]
+            island = []
+            visited.add(body)
+
+            while stack:
+                current = stack.pop()
+                island.append(current)
+
+                for neighbour in adjacency[current]:
+                    if neighbour not in visited:
+                        visited.add(neighbour)
+                        stack.append(neighbour)
+
+            islands.append(island)
+
+        return islands
+
+    def apply_island_sleep(self, contacts):
+        islands = self.build_islands(contacts)
+
+        for island in islands:
+            should_sleep = True
+
+            for body in island:
+                if body.velocity.length() >= body.sleep_velocity:
+                    should_sleep = False
+                    break
+
+                if abs(body.angular_velocity) >= body.sleep_angular_velocity:
+                    should_sleep = False
+                    break
+
+                if body.sleep_timer < body.sleep_time:
+                    should_sleep = False
+                    break
+
+            if should_sleep:
+                for body in island:
+                    body.sleeping = True
+                    body.velocity = Vector2()
+                    body.angular_velocity = 0.0
+                    body.sleep_timer = body.sleep_time
+            else:
+                for body in island:
+                    body.wake()
