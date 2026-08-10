@@ -4,8 +4,12 @@ import math
 
 class Body:
 
+    next_id = 0
+
     def __init__(self, x, y, radius=20, density=0.002, color=(255, 255, 255), is_static=False):
         self.position = Vector2(x, y)
+        self.id = Body.next_id
+        Body.next_id += 1
         self.previous_position = self.position.copy()
         self.velocity = Vector2()
         self.impulse_velocity_delta = Vector2()

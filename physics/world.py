@@ -26,6 +26,9 @@ class World:
         self.collision_iterations = 4
 
         self.debug_draw = False
+        self.show_grid_debug = False
+        self.show_collision_normals = False
+        self.debug_contacts = []
 
     def add_body(self, body):
         self.bodies.append(body)
@@ -38,6 +41,7 @@ class World:
 
     def update(self, dt):
         sub_dt = dt / self.substeps
+        self.debug_contacts = []
 
         for _ in range(self.substeps):
 
@@ -149,6 +153,17 @@ class World:
         for constraint in self.constraints:
             renderer.draw_constraint_debug(constraint)
 
+        if self.show_collision_normals:
+            for point, normal, color in self.debug_contacts:
+                renderer.draw_collision_normal_debug(point, normal, color)
+
+        self.draw_grid_debug(renderer)
+        
+    def draw_grid_debug(self, renderer):
+        if not self.debug_draw or not self.show_grid_debug:
+            return
+
+        renderer.draw_spatial_grid_debug(self.grid)
 
     def check_collisions(self):
         cells = list(self.grid.cells.items())
@@ -217,6 +232,9 @@ class World:
                 collision_normal = relative_velocity.normalize()
         else:
             collision_normal = difference / distance
+
+        contact_point = body1.position + collision_normal * body1.radius
+        self.debug_contacts.append((contact_point, collision_normal, (255, 220, 80)))
 
         overlap = radius_sum - distance
         if overlap <= 0:
@@ -333,6 +351,9 @@ class World:
 
         normal = Vector2(0, -1)
         ra = Vector2(0, body.radius)
+
+        contact_point = Vector2(body.position.x, self.floor_y)
+        self.debug_contacts.append((contact_point, normal, (100, 220, 255)))
 
         contact_velocity = body.get_contact_velocity(ra)
         velocity_along_normal = contact_velocity.dot(normal)

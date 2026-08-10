@@ -11,6 +11,9 @@ pygame.init()
 
 font = pygame.font.SysFont(None, 24)
 
+fps_timer = 0
+fps_value = 0
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Physics Simulation Lab")
 
@@ -26,6 +29,8 @@ accumulator = 0
 while running:
 
     frame_time = clock.tick(60) / 1000
+    fps_timer += frame_time
+    fps_value = clock.get_fps()
     accumulator += frame_time
 
     for event in pygame.event.get():
@@ -53,8 +58,14 @@ while running:
             elif event.key == pygame.K_6:
                 current_scene = StaticCollisionScene()
 
-            elif event.key == pygame.K_0:
+            elif event.key == pygame.K_F1:
                 current_scene.world.debug_draw = not current_scene.world.debug_draw
+
+            elif event.key == pygame.K_F2:
+                current_scene.world.show_grid_debug = not current_scene.world.show_grid_debug
+
+            elif event.key == pygame.K_F3:
+                current_scene.world.show_collision_normals = not current_scene.world.show_collision_normals
                 
         current_scene.handle_event(event)
 
@@ -73,7 +84,11 @@ while running:
         (255, 255, 255)
     )
 
+    pygame.draw.rect(screen, (0, 0, 0), (6, 6, 120, 56))
     screen.blit(menu, (10, 10))
+
+    fps_text = font.render(f"FPS: {fps_value:.1f}", True, (255, 255, 255))
+    screen.blit(fps_text, (10, 35))
 
     pygame.display.flip()
 
