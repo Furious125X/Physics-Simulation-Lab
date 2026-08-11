@@ -28,6 +28,8 @@ class World:
         self.debug_draw = False
         self.show_grid_debug = False
         self.show_collision_normals = False
+        self.show_velocity_vectors = False
+        self.show_force_vectors = False
         self.debug_contacts = []
 
     def add_body(self, body):
@@ -156,6 +158,14 @@ class World:
         if self.show_collision_normals:
             for point, normal, color in self.debug_contacts:
                 renderer.draw_collision_normal_debug(point, normal, color)
+
+        if self.show_velocity_vectors:
+            for body in self.bodies:
+                renderer.draw_velocity_vector_debug(body)
+
+        if self.show_force_vectors:
+            for body in self.bodies:
+                renderer.draw_force_vector_debug(body)
 
         self.draw_grid_debug(renderer)
         

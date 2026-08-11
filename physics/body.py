@@ -55,6 +55,8 @@ class Body:
 
         self.hit_floor = False
 
+        self.debug_force = Vector2()
+
     def integrate_forces(self, dt):
         gravity_force = Vector2(0, self.mass * self.gravity)
         self.apply_force(gravity_force)
@@ -62,6 +64,8 @@ class Body:
         damping_force = -self.velocity * self.linear_damping * self.mass
         self.apply_force(damping_force)
 
+        self.debug_force = self.force.copy()
+        
         acceleration = self.force / self.mass
         self.velocity += acceleration * dt
 

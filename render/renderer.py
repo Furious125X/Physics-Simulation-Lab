@@ -58,29 +58,21 @@ class Renderer:
 
 
     def draw_body_debug(self, body):
-        colour = (255, 255, 0) if not body.is_static else (255, 100, 100)
+        color = (255, 255, 0) if not body.is_static else (255, 120, 120)
+
         pygame.draw.circle(
             self.screen,
-            colour,
+            color,
             (int(body.position.x), int(body.position.y)),
             body.radius,
             1
         )
-        
-
-        end_x = int(body.position.x + body.velocity.x * 0.05)
-        end_y = int(body.position.y + body.velocity.y * 0.05)
-
-        pygame.draw.line(
-            self.screen,
-            (0, 255, 0),
-            (int(body.position.x), int(body.position.y)),
-            (end_x, end_y),
-            1
-        )
 
         label = self.font.render(str(body.id), True, (255, 255, 255))
-        self.screen.blit(label, (int(body.position.x) + body.radius + 2, int(body.position.y) - body.radius - 2))
+        self.screen.blit(
+            label,
+            (int(body.position.x) + body.radius + 2, int(body.position.y) - body.radius - 2)
+        )
 
     def draw_spring_debug(self, spring):
         pygame.draw.line(
@@ -166,3 +158,57 @@ class Renderer:
         pygame.draw.line(self.screen, color, start, end, 2)
 
         pygame.draw.circle(self.screen, color, start, 3)
+
+
+    def draw_velocity_vector_debug(self, body):
+        start = (int(body.position.x), int(body.position.y))
+
+        scale = 0.08
+        end = (
+            int(body.position.x + body.velocity.x * scale),
+            int(body.position.y + body.velocity.y * scale)
+        )
+
+        pygame.draw.line(
+            self.screen,
+            (0, 255, 0),
+            start,
+            end,
+            2
+        )
+
+        pygame.draw.circle(
+            self.screen,
+            (0, 255, 0),
+            end,
+            3
+        )
+
+
+    def draw_force_vector_debug(self, body):
+        start = (
+            int(body.position.x),
+            int(body.position.y)
+        )
+
+        scale = 0.02
+
+        end = (
+            int(body.position.x + body.debug_force.x * scale),
+            int(body.position.y + body.debug_force.y * scale)
+        )
+
+        pygame.draw.line(
+            self.screen,
+            (255, 140, 0),
+            start,
+            end,
+            2
+        )
+
+        pygame.draw.circle(
+            self.screen,
+            (255, 140, 0),
+            end,
+            3
+        )
