@@ -155,3 +155,11 @@ class Body:
                 self.angular_velocity = 0.0
         else:
             self.wake()
+
+    def get_aabb(self):
+        return (
+            self.position.x - self.radius,
+            self.position.y - self.radius,
+            self.position.x + self.radius,
+            self.position.y + self.radius
+        )

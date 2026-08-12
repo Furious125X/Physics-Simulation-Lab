@@ -30,6 +30,7 @@ class World:
         self.show_collision_normals = False
         self.show_velocity_vectors = False
         self.show_force_vectors = False
+        self.show_bounding_boxes = False
         self.debug_contacts = []
 
     def add_body(self, body):
@@ -166,6 +167,10 @@ class World:
         if self.show_force_vectors:
             for body in self.bodies:
                 renderer.draw_force_vector_debug(body)
+
+        if self.show_bounding_boxes:
+            for body in self.bodies:
+                renderer.draw_bounding_box_debug(body)
 
         self.draw_grid_debug(renderer)
         

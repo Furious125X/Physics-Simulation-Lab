@@ -24,7 +24,7 @@ renderer = Renderer(screen)
 current_scene = SpringScene()
 
 debug_menu = font.render(
-    "F2: Collision Grid  F3: Collison Normals F4: Velocity vectors F5: Force Vectors",
+    "F2: Collision Grid  F3: Collison Normals F4: Velocity vectors F5: Force Vectors F6: Bounding Boxes",
     True,
     (255, 255, 255)
 )
@@ -79,6 +79,22 @@ while running:
 
             elif event.key == pygame.K_F5:
                 current_scene.world.show_force_vectors = not current_scene.world.show_force_vectors
+
+            elif event.key == pygame.K_F6:
+                current_scene.world.show_bounding_boxes = not current_scene.world.show_bounding_boxes
+
+
+            elif event.key == pygame.K_LEFT:
+                renderer.camera.position.x -= 50
+
+            elif event.key == pygame.K_RIGHT:
+                renderer.camera.position.x += 50
+
+            elif event.key == pygame.K_UP:
+                renderer.camera.position.y -= 50
+
+            elif event.key == pygame.K_DOWN:
+                renderer.camera.position.y += 50
                 
         current_scene.handle_event(event)
 
