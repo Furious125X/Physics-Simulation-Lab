@@ -2,7 +2,7 @@ import pygame
 
 from render.renderer import Renderer
 from scenes.scenes import SpringScene, CollisionScene, NewtonCradleScene, RopeScene, ClothScene, StaticCollisionScene
-
+from physics.vector import Vector2
 WIDTH = 800
 HEIGHT = 600
 FIXED_DT = 1 / 120
@@ -83,24 +83,34 @@ while running:
             elif event.key == pygame.K_F6:
                 current_scene.world.show_bounding_boxes = not current_scene.world.show_bounding_boxes
 
+            elif event.key == pygame.K_EQUALS:
+                renderer.camera.zoom *= 1.1
+                renderer.camera.zoom = min(renderer.camera.zoom, 5.0)
 
-            elif event.key == pygame.K_LEFT:
-                renderer.camera.position.x -= 50
-
-            elif event.key == pygame.K_RIGHT:
-                renderer.camera.position.x += 50
-
-            elif event.key == pygame.K_UP:
-                renderer.camera.position.y -= 50
-
-            elif event.key == pygame.K_DOWN:
-                renderer.camera.position.y += 50
+            elif event.key == pygame.K_MINUS:
+                renderer.camera.zoom /= 1.1
+                renderer.camera.zoom = max(renderer.camera.zoom, 0.1)
                 
         current_scene.handle_event(event)
 
     while accumulator >= FIXED_DT:
         current_scene.update(FIXED_DT)
         accumulator -= FIXED_DT
+
+
+    keys = pygame.key.get_pressed()
+
+    if keys[pygame.K_LEFT]:
+        renderer.camera.move(Vector2(-1, 0))
+
+    if keys[pygame.K_RIGHT]:
+        renderer.camera.move(Vector2(1, 0))
+
+    if keys[pygame.K_UP]:
+        renderer.camera.move(Vector2(0, -1))
+
+    if keys[pygame.K_DOWN]:
+        renderer.camera.move(Vector2(0, 1))
 
     screen.fill((20, 20, 20))
 

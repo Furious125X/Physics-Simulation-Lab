@@ -15,21 +15,22 @@ class Renderer:
 
     def draw_body(self, body):
         screen_position = self.camera.world_to_screen(body.position)
+        screen_radius = max(1, int(body.radius * self.camera.zoom))
 
         pygame.draw.circle(
             self.screen,
             body.color,
             (int(screen_position.x), int(screen_position.y)),
-            body.radius
+            screen_radius
         )
 
         end_x = int(
-            screen_position.x +
-            math.cos(body.angle) * body.radius
+            screen_position.x
+            + math.cos(body.angle) * screen_radius
         )
         end_y = int(
-            screen_position.y +
-            math.sin(body.angle) * body.radius
+            screen_position.y
+            + math.sin(body.angle) * screen_radius
         )
 
         pygame.draw.line(
@@ -37,7 +38,7 @@ class Renderer:
             (255, 255, 255),
             (int(screen_position.x), int(screen_position.y)),
             (end_x, end_y),
-            2
+            max(1, int(2 * self.camera.zoom))
         )
 
     def draw_spring(self, spring):
@@ -48,15 +49,22 @@ class Renderer:
             spring.body2.position
         )
 
+        screen_width = max(
+            1,
+            int(spring.width * self.camera.zoom)
+        )
+
         pygame.draw.line(
             self.screen,
             (255, 255, 255),
             (int(screen_position1.x), int(screen_position1.y)),
             (int(screen_position2.x), int(screen_position2.y)),
-            spring.width
+            screen_width
         )
 
     def draw_constraint(self, constraint):
+        line_width = max(1, int(2 * self.camera.zoom))
+
         if isinstance(constraint, AnchorConstraint):
             body_position = self.camera.world_to_screen(
                 constraint.body.position
@@ -70,7 +78,7 @@ class Renderer:
                 (255, 255, 255),
                 (int(body_position.x), int(body_position.y)),
                 (int(anchor_position.x), int(anchor_position.y)),
-                2
+                line_width
             )
 
         elif isinstance(constraint, DistanceConstraint):
@@ -86,11 +94,12 @@ class Renderer:
                 (255, 255, 255),
                 (int(body1_position.x), int(body1_position.y)),
                 (int(body2_position.x), int(body2_position.y)),
-                2
+                line_width
             )
 
     def draw_body_debug(self, body):
         screen_position = self.camera.world_to_screen(body.position)
+        screen_radius = max(1, int(body.radius * self.camera.zoom))
 
         if body.is_static:
             color = (255, 120, 120)
@@ -103,7 +112,7 @@ class Renderer:
             self.screen,
             color,
             (int(screen_position.x), int(screen_position.y)),
-            body.radius,
+            screen_radius,
             1
         )
 
@@ -116,8 +125,8 @@ class Renderer:
         self.screen.blit(
             label,
             (
-                int(screen_position.x) + body.radius + 2,
-                int(screen_position.y) - body.radius - 2
+                int(screen_position.x) + screen_radius + 2,
+                int(screen_position.y) - screen_radius - 2
             )
         )
 
@@ -129,15 +138,19 @@ class Renderer:
             spring.body2.position
         )
 
+        line_width = max(1, int(self.camera.zoom))
+
         pygame.draw.line(
             self.screen,
             (255, 100, 100),
             (int(screen_position1.x), int(screen_position1.y)),
             (int(screen_position2.x), int(screen_position2.y)),
-            1
+            line_width
         )
 
     def draw_constraint_debug(self, constraint):
+        line_width = max(1, int(self.camera.zoom))
+
         if hasattr(constraint, "body1") and hasattr(constraint, "body2"):
             body1_position = self.camera.world_to_screen(
                 constraint.body1.position
@@ -160,7 +173,7 @@ class Renderer:
                 (100, 100, 255),
                 start,
                 end,
-                1
+                line_width
             )
 
             mid_x = (start[0] + end[0]) // 2
@@ -199,14 +212,16 @@ class Renderer:
                 (255, 160, 100),
                 body_pos,
                 anchor_pos,
-                1
+                line_width
             )
+
+            anchor_radius = max(2, int(4 * self.camera.zoom))
 
             pygame.draw.circle(
                 self.screen,
                 (255, 200, 100),
                 anchor_pos,
-                4
+                anchor_radius
             )
 
             mid_x = (body_pos[0] + anchor_pos[0]) // 2
@@ -225,6 +240,10 @@ class Renderer:
 
     def draw_spatial_grid_debug(self, grid):
         cell_size = grid.cell_size
+        screen_cell_size = max(
+            1,
+            int(cell_size * self.camera.zoom)
+        )
 
         for (cell_x, cell_y), bodies in grid.cells.items():
             world_position = Vector2(
@@ -242,8 +261,8 @@ class Renderer:
             rect = pygame.Rect(
                 x,
                 y,
-                cell_size,
-                cell_size
+                screen_cell_size,
+                screen_cell_size
             )
 
             pygame.draw.rect(
@@ -273,9 +292,11 @@ class Renderer:
             int(screen_point.y)
         )
 
+        normal_length = 25 * self.camera.zoom
+
         end = (
-            int(screen_point.x + normal.x * 25),
-            int(screen_point.y + normal.y * 25)
+            int(screen_point.x + normal.x * normal_length),
+            int(screen_point.y + normal.y * normal_length)
         )
 
         pygame.draw.line(
@@ -283,14 +304,14 @@ class Renderer:
             color,
             start,
             end,
-            2
+            max(1, int(2 * self.camera.zoom))
         )
 
         pygame.draw.circle(
             self.screen,
             color,
             start,
-            3
+            max(2, int(3 * self.camera.zoom))
         )
 
     def draw_velocity_vector_debug(self, body):
@@ -306,8 +327,14 @@ class Renderer:
         scale = 0.08
 
         end = (
-            int(screen_position.x + body.velocity.x * scale),
-            int(screen_position.y + body.velocity.y * scale)
+            int(
+                screen_position.x
+                + body.velocity.x * scale * self.camera.zoom
+            ),
+            int(
+                screen_position.y
+                + body.velocity.y * scale * self.camera.zoom
+            )
         )
 
         pygame.draw.line(
@@ -315,14 +342,14 @@ class Renderer:
             (0, 255, 0),
             start,
             end,
-            2
+            max(1, int(2 * self.camera.zoom))
         )
 
         pygame.draw.circle(
             self.screen,
             (0, 255, 0),
             end,
-            3
+            max(2, int(3 * self.camera.zoom))
         )
 
     def draw_force_vector_debug(self, body):
@@ -338,8 +365,14 @@ class Renderer:
         scale = 0.02
 
         end = (
-            int(screen_position.x + body.debug_force.x * scale),
-            int(screen_position.y + body.debug_force.y * scale)
+            int(
+                screen_position.x
+                + body.debug_force.x * scale * self.camera.zoom
+            ),
+            int(
+                screen_position.y
+                + body.debug_force.y * scale * self.camera.zoom
+            )
         )
 
         pygame.draw.line(
@@ -347,14 +380,14 @@ class Renderer:
             (255, 140, 0),
             start,
             end,
-            2
+            max(1, int(2 * self.camera.zoom))
         )
 
         pygame.draw.circle(
             self.screen,
             (255, 140, 0),
             end,
-            3
+            max(2, int(3 * self.camera.zoom))
         )
 
     def draw_bounding_box_debug(self, body):
@@ -379,12 +412,17 @@ class Renderer:
             self.screen,
             (255, 0, 255),
             rect,
-            1
+            max(1, int(self.camera.zoom))
         )
 
     def draw_sleeping_debug(self, body):
         screen_position = self.camera.world_to_screen(
             body.position
+        )
+
+        screen_radius = max(
+            1,
+            int(body.radius * self.camera.zoom)
         )
 
         if body.sleeping:
@@ -396,6 +434,6 @@ class Renderer:
             self.screen,
             color,
             (int(screen_position.x), int(screen_position.y)),
-            body.radius,
-            2
+            screen_radius,
+            max(1, int(2 * self.camera.zoom))
         )
