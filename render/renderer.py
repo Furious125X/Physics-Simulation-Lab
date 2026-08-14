@@ -5,6 +5,9 @@ from physics.constraints import AnchorConstraint, DistanceConstraint
 from physics.vector import Vector2
 from render.camera import Camera
 
+import os
+import imageio
+
 
 class Renderer:
 
@@ -12,6 +15,9 @@ class Renderer:
         self.screen = screen
         self.camera = Camera()
         self.font = pygame.font.SysFont(None, 18)
+
+        self.recording = False
+        self.record_frames = []
 
     def draw_body(self, body):
         screen_position = self.camera.world_to_screen(body.position)
@@ -437,3 +443,42 @@ class Renderer:
             screen_radius,
             max(1, int(2 * self.camera.zoom))
         )
+
+    def save_screenshot(self, filename):
+        pygame.image.save(self.screen, filename)
+
+    def start_recording(self):
+        self.record_frames = []
+        self.recording = True
+
+    def capture_recording_frame(self):
+        if not self.recording:
+            return
+
+        frame = pygame.surfarray.array3d(self.screen)
+        frame = frame.swapaxes(0, 1)
+
+        self.record_frames.append(frame)
+
+
+    def stop_recording(self, filename, fps=60):
+        if not self.recording:
+            return
+
+        self.recording = False
+
+        if not self.record_frames:
+            return
+
+        os.makedirs(
+            os.path.dirname(filename),
+            exist_ok=True
+        )
+
+        imageio.mimsave(
+            filename,
+            self.record_frames,
+            fps=fps
+        )
+
+        self.record_frames = []

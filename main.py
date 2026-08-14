@@ -1,4 +1,5 @@
 import pygame
+import os
 
 from render.renderer import Renderer
 from scenes.scenes import SpringScene, CollisionScene, NewtonCradleScene, RopeScene, ClothScene, StaticCollisionScene
@@ -8,6 +9,21 @@ HEIGHT = 600
 FIXED_DT = 1 / 120
 
 pygame.init()
+
+screenshot_directory = "screenshots"
+
+os.makedirs(
+    screenshot_directory,
+    exist_ok=True
+)
+
+recording_directory = "recordings"
+
+os.makedirs(
+    recording_directory,
+    exist_ok=True
+)
+
 
 font = pygame.font.SysFont(None, 24)
 
@@ -32,6 +48,11 @@ debug = False
 
 running = True
 accumulator = 0
+
+screenshot_count = 0
+take_screenshot = False
+recording_count = 0
+recording = False
 
 while running:
 
@@ -83,6 +104,29 @@ while running:
             elif event.key == pygame.K_F6:
                 current_scene.world.show_bounding_boxes = not current_scene.world.show_bounding_boxes
 
+            elif event.key == pygame.K_F8:
+                take_screenshot = True
+
+            elif event.key == pygame.K_F9:
+
+                if not recording:
+                    renderer.start_recording()
+                    recording = True
+
+                else:
+                    filename = os.path.join(
+                        recording_directory,
+                        f"recording_{recording_count:04d}.mp4"
+                    )
+
+                    renderer.stop_recording(
+                        filename,
+                        fps=60
+                    )
+
+                    recording = False
+                    recording_count += 1
+
             elif event.key == pygame.K_EQUALS:
                 renderer.camera.zoom *= 1.1
                 renderer.camera.zoom = min(renderer.camera.zoom, 5.0)
@@ -101,16 +145,16 @@ while running:
     keys = pygame.key.get_pressed()
 
     if keys[pygame.K_LEFT]:
-        renderer.camera.move(Vector2(-1, 0))
-
-    if keys[pygame.K_RIGHT]:
         renderer.camera.move(Vector2(1, 0))
 
+    if keys[pygame.K_RIGHT]:
+        renderer.camera.move(Vector2(-1, 0))
+
     if keys[pygame.K_UP]:
-        renderer.camera.move(Vector2(0, -1))
+        renderer.camera.move(Vector2(0, 1))
 
     if keys[pygame.K_DOWN]:
-        renderer.camera.move(Vector2(0, 1))
+        renderer.camera.move(Vector2(0, -1))
 
     screen.fill((20, 20, 20))
 
@@ -122,6 +166,18 @@ while running:
         True,
         (255, 255, 255)
     )
+
+    if recording:
+        recording_text = font.render(
+            "REC",
+            True,
+            (255, 80, 80)
+        )
+
+        screen.blit(
+            recording_text,
+            (10, 58)
+        )
 
     pygame.draw.rect(screen, (0, 0, 0), (6, 6, 120, 56))
     screen.blit(menu, (10, 10))
@@ -135,4 +191,19 @@ while running:
 
     pygame.display.flip()
 
+    if take_screenshot:
+        filename = os.path.join(
+            screenshot_directory,
+            f"screenshot_{screenshot_count:04d}.png"
+        )
+
+        renderer.save_screenshot(filename)
+
+        screenshot_count += 1
+        take_screenshot = False
+
+    
+    if recording:
+        renderer.capture_recording_frame()
+    
 pygame.quit()
