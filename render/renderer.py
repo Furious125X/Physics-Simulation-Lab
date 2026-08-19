@@ -109,8 +109,7 @@ class Renderer:
 
         if body.is_static:
             color = (255, 120, 120)
-        elif body.sleeping:
-            color = (80, 160, 255)
+
         else:
             color = (255, 180, 80)
 

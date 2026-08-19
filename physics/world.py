@@ -31,6 +31,7 @@ class World:
         self.show_velocity_vectors = False
         self.show_force_vectors = False
         self.show_bounding_boxes = False
+        self.show_sleeping = False
         self.debug_contacts = []
 
     def add_body(self, body):
@@ -171,6 +172,9 @@ class World:
         if self.show_bounding_boxes:
             for body in self.bodies:
                 renderer.draw_bounding_box_debug(body)
+        if self.show_sleeping:
+            for body in self.bodies:
+                renderer.draw_sleeping_debug(body)
 
         self.draw_grid_debug(renderer)
         
