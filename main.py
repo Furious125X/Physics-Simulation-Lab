@@ -58,6 +58,19 @@ recording_count = 0
 recording = False
 
 
+def build_scene_menu(scene_manager):
+    entries = []
+
+    for definition in scene_manager.scene_registry:
+        key_name = pygame.key.name(definition.shortcut)
+
+        entries.append(
+            f"{key_name}: {definition.name}"
+        )
+
+    return "   ".join(entries)
+
+
 while running:
 
     frame_time = clock.tick(60) / 1000
@@ -71,32 +84,11 @@ while running:
 
         if event.type == pygame.KEYDOWN:
 
-            if event.key == pygame.K_1:
-                scene_manager.switch_scene(pygame.K_1)
-                continue
+            if event.key == pygame.K_F1:
+                scene_manager.world.debug_draw = (
+                    not scene_manager.world.debug_draw
+                )
 
-            elif event.key == pygame.K_2:
-                scene_manager.switch_scene(pygame.K_2)
-                continue
-
-            elif event.key == pygame.K_3:
-                scene_manager.switch_scene(pygame.K_3)
-                continue
-
-            elif event.key == pygame.K_4:
-                scene_manager.switch_scene(pygame.K_4)
-                continue
-
-            elif event.key == pygame.K_5:
-                scene_manager.switch_scene(pygame.K_5)
-                continue
-
-            elif event.key == pygame.K_6:
-                scene_manager.switch_scene(pygame.K_6)
-                continue
-
-            elif event.key == pygame.K_F1:
-                scene_manager.world.debug_draw = not scene_manager.world.debug_draw
                 debug = not debug
                 continue
 
@@ -202,14 +194,10 @@ while running:
 
     scene_manager.draw(renderer)
 
+    menu_text = build_scene_menu(scene_manager)
+
     menu = font.render(
-        "1: Spring Demo   "
-        "2: Collision Demo   "
-        "3: Newton's Cradle   "
-        "4: Rope Scene   "
-        "5: Cloth Scene   "
-        "6: Floor Test   "
-        "F1: Debug Menu",
+        menu_text,
         True,
         (255, 255, 255)
     )
@@ -217,7 +205,7 @@ while running:
     pygame.draw.rect(
         screen,
         (0, 0, 0),
-        (6, 6, 120, 56)
+        (6, 6, 780, 56)
     )
 
     screen.blit(
