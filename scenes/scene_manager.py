@@ -65,7 +65,10 @@ class SceneManager:
             )
         ]
 
-        self.current_scene = SpringScene()
+        self.current_scene_definition = self.scene_registry[0]
+        self.current_scene = self.create_scene(
+            self.current_scene_definition
+        )
 
     @property
     def world(self):
@@ -78,7 +81,7 @@ class SceneManager:
         if definition is None:
             return False
 
-        self.current_scene = definition.scene_class()
+        self.activate_scene(definition)
 
         return True
 
@@ -108,3 +111,15 @@ class SceneManager:
                 return definition
 
         return None
+
+    def create_scene(self, definition):
+        return definition.scene_class()
+
+    def reset_scene(self):
+        self.activate_scene(
+            self.current_scene_definition
+        )
+
+    def activate_scene(self, definition):
+        self.current_scene_definition = definition
+        self.current_scene = self.create_scene(definition)

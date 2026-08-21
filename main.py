@@ -46,6 +46,7 @@ debug_menu = font.render(
     (255, 255, 255)
 )
 
+
 debug = False
 
 running = True
@@ -84,7 +85,11 @@ while running:
 
         if event.type == pygame.KEYDOWN:
 
-            if event.key == pygame.K_F1:
+            if event.key == pygame.K_r:
+                scene_manager.reset_scene()
+                continue
+
+            elif event.key == pygame.K_F1:
                 scene_manager.world.debug_draw = (
                     not scene_manager.world.debug_draw
                 )
@@ -194,7 +199,10 @@ while running:
 
     scene_manager.draw(renderer)
 
-    menu_text = build_scene_menu(scene_manager)
+    menu_text = (
+        build_scene_menu(scene_manager)
+        + "   R: Reset"
+    )
 
     menu = font.render(
         menu_text,
