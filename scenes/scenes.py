@@ -11,9 +11,17 @@ from physics.vector import Vector2
 class Scene:
 
     def __init__(self):
-        self.world = World(gravity=500, floor_y=600)
         self.selected_body = None
         self.mouse_stiffness = 40
+        self.setup()
+
+    def setup(self):
+        self.world = World(gravity=500, floor_y=600)
+
+    def reset(self):
+        self.setup()
+        self.selected_body = None
+        pass
 
     def update(self, dt):
         if self.selected_body is not None:

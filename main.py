@@ -46,8 +46,9 @@ debug_menu = font.render(
     (255, 255, 255)
 )
 
-
 debug = False
+show_scene_help = True
+show_all_scene_help = False
 
 running = True
 accumulator = 0
@@ -63,7 +64,10 @@ def build_scene_menu(scene_manager):
     entries = []
 
     for definition in scene_manager.scene_registry:
-        key_name = pygame.key.name(definition.shortcut)
+
+        key_name = pygame.key.name(
+            definition.shortcut
+        )
 
         entries.append(
             f"{key_name}: {definition.name}"
@@ -87,6 +91,14 @@ while running:
 
             if event.key == pygame.K_r:
                 scene_manager.reset_scene()
+                continue
+
+            elif event.key == pygame.K_h:
+                show_scene_help = not show_scene_help
+                continue
+
+            elif event.key == pygame.K_F10:
+                show_all_scene_help = not show_all_scene_help
                 continue
 
             elif event.key == pygame.K_F1:
@@ -201,7 +213,7 @@ while running:
 
     menu_text = (
         build_scene_menu(scene_manager)
-        + "   R: Reset"
+        + "   R: Reset   H: Scene Help"
     )
 
     menu = font.render(
@@ -213,7 +225,7 @@ while running:
     pygame.draw.rect(
         screen,
         (0, 0, 0),
-        (6, 6, 780, 56)
+        (6, 6, 790, 56)
     )
 
     screen.blit(
@@ -249,6 +261,38 @@ while running:
             recording_text,
             (10, 58)
         )
+
+    if show_scene_help:
+
+        current_scene_help = font.render(
+            scene_manager.get_current_scene_help(),
+            True,
+            (200, 200, 200)
+        )
+
+        screen.blit(
+            current_scene_help,
+            (10, 85)
+        )
+
+    if show_all_scene_help:
+
+        y = 110
+
+        for entry in scene_manager.get_all_scene_help():
+
+            text = font.render(
+                entry,
+                True,
+                (220, 220, 220)
+            )
+
+            screen.blit(
+                text,
+                (10, y)
+            )
+
+            y += 24
 
     pygame.display.flip()
 

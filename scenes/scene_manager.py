@@ -9,22 +9,34 @@ from scenes.scenes import (
     StaticCollisionScene
 )
 
+
 class SceneDefinition:
 
-    def __init__(self, scene_id, name, shortcut, scene_class):
+    def __init__(
+        self,
+        scene_id,
+        name,
+        description,
+        shortcut,
+        scene_class
+    ):
         self.scene_id = scene_id
         self.name = name
+        self.description = description
         self.shortcut = shortcut
         self.scene_class = scene_class
+
 
 class SceneManager:
 
     def __init__(self):
 
         self.scene_registry = [
+
             SceneDefinition(
                 "spring",
                 "Spring Demo",
+                "Demonstrates spring forces, gravity, damping, and an anchored constraint.",
                 pygame.K_1,
                 SpringScene
             ),
@@ -32,6 +44,7 @@ class SceneManager:
             SceneDefinition(
                 "collision",
                 "Collision Demo",
+                "Demonstrates circle-to-circle collisions, restitution, friction, and static bodies.",
                 pygame.K_2,
                 CollisionScene
             ),
@@ -39,6 +52,7 @@ class SceneManager:
             SceneDefinition(
                 "newton_cradle",
                 "Newton's Cradle",
+                "Demonstrates constrained pendulum motion and collision-based momentum transfer.",
                 pygame.K_3,
                 NewtonCradleScene
             ),
@@ -46,6 +60,7 @@ class SceneManager:
             SceneDefinition(
                 "rope",
                 "Rope Scene",
+                "Demonstrates a chain of bodies connected by distance constraints.",
                 pygame.K_4,
                 RopeScene
             ),
@@ -53,6 +68,7 @@ class SceneManager:
             SceneDefinition(
                 "cloth",
                 "Cloth Scene",
+                "Demonstrates a grid of bodies connected by distance constraints.",
                 pygame.K_5,
                 ClothScene
             ),
@@ -60,6 +76,7 @@ class SceneManager:
             SceneDefinition(
                 "static_collision",
                 "Floor Test",
+                "Demonstrates collisions between dynamic bodies and immovable static bodies.",
                 pygame.K_6,
                 StaticCollisionScene
             )
@@ -73,6 +90,15 @@ class SceneManager:
     @property
     def world(self):
         return self.current_scene.world
+
+    @property
+    def scene_metadata(self):
+        return {
+            "id": self.current_scene_definition.scene_id,
+            "name": self.current_scene_definition.name,
+            "description": self.current_scene_definition.description,
+            "shortcut": self.current_scene_definition.shortcut
+        }
 
     def switch_scene(self, shortcut):
 
@@ -112,6 +138,15 @@ class SceneManager:
 
         return None
 
+    def get_scene_by_id(self, scene_id):
+
+        for definition in self.scene_registry:
+
+            if definition.scene_id == scene_id:
+                return definition
+
+        return None
+
     def create_scene(self, definition):
         return definition.scene_class()
 
@@ -123,3 +158,26 @@ class SceneManager:
     def activate_scene(self, definition):
         self.current_scene_definition = definition
         self.current_scene = self.create_scene(definition)
+
+    def get_scene_help(self, definition):
+        key_name = pygame.key.name(definition.shortcut)
+
+        return (
+            f"{key_name}: {definition.name} - "
+            f"{definition.description}"
+        )
+
+    def get_current_scene_help(self):
+        return self.get_scene_help(
+            self.current_scene_definition
+        )
+
+    def get_all_scene_help(self):
+        help_entries = []
+
+        for definition in self.scene_registry:
+            help_entries.append(
+                self.get_scene_help(definition)
+            )
+
+        return help_entries
