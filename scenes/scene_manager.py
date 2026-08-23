@@ -1,13 +1,6 @@
 import pygame
 
-from scenes.scenes import (
-    SpringScene,
-    CollisionScene,
-    NewtonCradleScene,
-    RopeScene,
-    ClothScene,
-    StaticCollisionScene
-)
+from scenes.scene_config import SCENE_CONFIG
 
 
 class SceneDefinition:
@@ -31,58 +24,22 @@ class SceneManager:
 
     def __init__(self):
 
-        self.scene_registry = [
+        self.scene_registry = []
 
-            SceneDefinition(
-                "spring",
-                "Spring Demo",
-                "Demonstrates spring forces, gravity, damping, and an anchored constraint.",
-                pygame.K_1,
-                SpringScene
-            ),
+        for config in SCENE_CONFIG:
 
-            SceneDefinition(
-                "collision",
-                "Collision Demo",
-                "Demonstrates circle-to-circle collisions, restitution, friction, and static bodies.",
-                pygame.K_2,
-                CollisionScene
-            ),
-
-            SceneDefinition(
-                "newton_cradle",
-                "Newton's Cradle",
-                "Demonstrates constrained pendulum motion and collision-based momentum transfer.",
-                pygame.K_3,
-                NewtonCradleScene
-            ),
-
-            SceneDefinition(
-                "rope",
-                "Rope Scene",
-                "Demonstrates a chain of bodies connected by distance constraints.",
-                pygame.K_4,
-                RopeScene
-            ),
-
-            SceneDefinition(
-                "cloth",
-                "Cloth Scene",
-                "Demonstrates a grid of bodies connected by distance constraints.",
-                pygame.K_5,
-                ClothScene
-            ),
-
-            SceneDefinition(
-                "static_collision",
-                "Floor Test",
-                "Demonstrates collisions between dynamic bodies and immovable static bodies.",
-                pygame.K_6,
-                StaticCollisionScene
+            definition = SceneDefinition(
+                config["scene_id"],
+                config["name"],
+                config["description"],
+                config["shortcut"],
+                config["scene_class"]
             )
-        ]
+
+            self.scene_registry.append(definition)
 
         self.current_scene_definition = self.scene_registry[0]
+
         self.current_scene = self.create_scene(
             self.current_scene_definition
         )
