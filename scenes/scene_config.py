@@ -6,6 +6,7 @@ from scenes.newton_cradle_scene import NewtonCradleScene
 from scenes.rope_scene import RopeScene
 from scenes.cloth_scene import ClothScene
 from scenes.static_collision_scene import StaticCollisionScene
+from scenes.pendulum_scene import PendulumScene
 
 
 SCENE_CONFIG = [
@@ -74,6 +75,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_6,
         "scene_class": StaticCollisionScene
-    }
+    },
+
+    {
+        "scene_id": "pendulum",
+        "name": "Simple Pendulum",
+        "description": (
+            "Demonstrates gravitational pendulum motion "
+            "using a fixed-length anchor constraint."
+        ),
+        "shortcut": pygame.K_7,
+        "scene_class": PendulumScene
+    },
 
 ]
