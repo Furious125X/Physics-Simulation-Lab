@@ -7,6 +7,7 @@ from scenes.rope_scene import RopeScene
 from scenes.cloth_scene import ClothScene
 from scenes.static_collision_scene import StaticCollisionScene
 from scenes.pendulum_scene import PendulumScene
+from scenes.double_pendulum_scene import DoublePendulumScene
 
 
 SCENE_CONFIG = [
@@ -86,6 +87,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_7,
         "scene_class": PendulumScene
+    },
+
+    {
+        "scene_id": "double_pendulum",
+        "name": "Double Pendulum",
+        "description": (
+            "Demonstrates coupled pendulum motion "
+            "using chained distance constraints."
+        ),
+        "shortcut": pygame.K_8,
+        "scene_class": DoublePendulumScene
     },
 
 ]
