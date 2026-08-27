@@ -34,6 +34,11 @@ class NewtonCradleScene(Scene):
                 color=self.random_color()
             )
 
+            ball.restitution = 1.0
+            ball.static_friction = 0.0
+            ball.dynamic_friction = 0.0
+            ball.linear_damping = 0.0
+
             constraint = AnchorConstraint(
                 ball,
                 anchor,
@@ -47,4 +52,7 @@ class NewtonCradleScene(Scene):
                 self.first_ball = ball
 
         # Pull the first ball back so it starts swinging
-        self.first_ball.position.x -= 120
+        pullback = 100
+
+        self.first_ball.position.x -= pullback
+        self.first_ball.velocity = Vector2()

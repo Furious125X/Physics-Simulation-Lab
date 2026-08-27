@@ -8,6 +8,7 @@ from scenes.cloth_scene import ClothScene
 from scenes.static_collision_scene import StaticCollisionScene
 from scenes.pendulum_scene import PendulumScene
 from scenes.double_pendulum_scene import DoublePendulumScene
+from scenes.projectile_scene import ProjectileScene
 
 
 SCENE_CONFIG = [
@@ -98,6 +99,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_8,
         "scene_class": DoublePendulumScene
+    },
+
+    {
+        "scene_id": "projectile",
+        "name": "Projectile Motion",
+        "description": (
+            "Demonstrates projectile motion under gravity "
+            "and floor collision."
+        ),
+        "shortcut": pygame.K_9,
+        "scene_class": ProjectileScene
     },
 
 ]
