@@ -34,7 +34,7 @@ class NewtonCradleScene(Scene):
                 color=self.random_color()
             )
 
-            ball.restitution = 1.0
+            ball.restitution = 0.6
             ball.static_friction = 0.0
             ball.dynamic_friction = 0.0
             ball.linear_damping = 0.0

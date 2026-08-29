@@ -9,7 +9,7 @@ from scenes.static_collision_scene import StaticCollisionScene
 from scenes.pendulum_scene import PendulumScene
 from scenes.double_pendulum_scene import DoublePendulumScene
 from scenes.projectile_scene import ProjectileScene
-
+from scenes.inclined_plane_scene import InclinedPlaneScene
 
 SCENE_CONFIG = [
 
@@ -110,6 +110,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_9,
         "scene_class": ProjectileScene
+    },
+
+    {
+        "scene_id": "inclined_plane",
+        "name": "Inclined Plane",
+        "description": (
+            "Demonstrates gravity, surface reaction, "
+            "and friction on an inclined plane."
+        ),
+        "shortcut": pygame.K_0,
+        "scene_class": InclinedPlaneScene
     },
 
 ]
