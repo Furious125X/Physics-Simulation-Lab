@@ -10,6 +10,7 @@ from scenes.pendulum_scene import PendulumScene
 from scenes.double_pendulum_scene import DoublePendulumScene
 from scenes.projectile_scene import ProjectileScene
 from scenes.inclined_plane_scene import InclinedPlaneScene
+from scenes.atwood_machine_scene import AtwoodMachineScene
 
 SCENE_CONFIG = [
 
@@ -64,7 +65,7 @@ SCENE_CONFIG = [
             "Demonstrates a grid of bodies connected "
             "by distance constraints."
         ),
-        "shortcut": pygame.K_5,
+        "shortcut": pygame.K_a,
         "scene_class": ClothScene
     },
 
@@ -75,7 +76,7 @@ SCENE_CONFIG = [
             "Demonstrates collisions between dynamic "
             "bodies and immovable static bodies."
         ),
-        "shortcut": pygame.K_6,
+        "shortcut": pygame.K_5,
         "scene_class": StaticCollisionScene
     },
 
@@ -86,7 +87,7 @@ SCENE_CONFIG = [
             "Demonstrates gravitational pendulum motion "
             "using a fixed-length anchor constraint."
         ),
-        "shortcut": pygame.K_7,
+        "shortcut": pygame.K_6,
         "scene_class": PendulumScene
     },
 
@@ -97,7 +98,7 @@ SCENE_CONFIG = [
             "Demonstrates coupled pendulum motion "
             "using chained distance constraints."
         ),
-        "shortcut": pygame.K_8,
+        "shortcut": pygame.K_7,
         "scene_class": DoublePendulumScene
     },
 
@@ -108,7 +109,7 @@ SCENE_CONFIG = [
             "Demonstrates projectile motion under gravity "
             "and floor collision."
         ),
-        "shortcut": pygame.K_9,
+        "shortcut": pygame.K_8,
         "scene_class": ProjectileScene
     },
 
@@ -119,8 +120,19 @@ SCENE_CONFIG = [
             "Demonstrates gravity, surface reaction, "
             "and friction on an inclined plane."
         ),
-        "shortcut": pygame.K_0,
+        "shortcut": pygame.K_9,
         "scene_class": InclinedPlaneScene
+    },
+
+    {
+        "scene_id": "atwood_machine",
+        "name": "Atwood Machine",
+        "description": (
+            "Demonstrates coupled motion of two unequal "
+            "masses using a fixed-length rope."
+        ),
+        "shortcut": pygame.K_0,
+        "scene_class": AtwoodMachineScene
     },
 
 ]
