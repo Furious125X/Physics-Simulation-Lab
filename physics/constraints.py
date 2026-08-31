@@ -80,13 +80,13 @@ class AtwoodConstraint:
         body1,
         body2,
         pulley,
-        rope_length,
+        length,
         compliance=0.0
     ):
         self.body1 = body1
         self.body2 = body2
         self.pulley = pulley
-        self.rope_length = rope_length
+        self.length = length
         self.compliance = compliance
         self.lambda_accum = 0.0
 
@@ -118,7 +118,7 @@ class AtwoodConstraint:
         C = (
             distance1
             + distance2
-            - self.rope_length
+            - self.length
         )
 
         if abs(C) < 0.01:

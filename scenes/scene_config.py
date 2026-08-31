@@ -11,6 +11,9 @@ from scenes.double_pendulum_scene import DoublePendulumScene
 from scenes.projectile_scene import ProjectileScene
 from scenes.inclined_plane_scene import InclinedPlaneScene
 from scenes.atwood_machine_scene import AtwoodMachineScene
+from scenes.orbital_mechanics_scene import OrbitalMechanicsScene
+from scenes.elastic_collision_scene import ElasticCollisionScene
+
 
 SCENE_CONFIG = [
 
@@ -133,6 +136,28 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_0,
         "scene_class": AtwoodMachineScene
+    },
+
+    {
+        "scene_id": "orbital_mechanics",
+        "name": "Orbital Mechanics",
+        "description": (
+            "Demonstrates gravitational attraction "
+            "and orbital motion."
+        ),
+        "shortcut": pygame.K_b,
+        "scene_class": OrbitalMechanicsScene
+    },
+
+    {
+        "scene_id": "elastic_collision",
+        "name": "Elastic vs Inelastic",
+        "description": (
+            "Demonstrates how restitution changes "
+            "collision energy transfer."
+        ),
+        "shortcut": pygame.K_c,
+        "scene_class": ElasticCollisionScene
     },
 
 ]
