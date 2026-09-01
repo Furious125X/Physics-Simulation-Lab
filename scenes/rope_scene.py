@@ -16,9 +16,9 @@ class RopeScene(Scene):
 
         super().__init__()
 
-        segments = 20
-        segment_radius = 8
-        segment_length = 20
+        segments = 30
+        segment_radius = 6
+        segment_length = 18
 
         start_x = 400
         start_y = 50
@@ -29,14 +29,22 @@ class RopeScene(Scene):
 
             segment = Body(start_x, start_y  + segment_length * i, segment_radius, color=self.random_color())
             self.rope_bodies.append(segment)
+            segment.linear_damping = 0.15
+            segment.static_friction = 0.4
+            segment.dynamic_friction = 0.3
+            segment.restitution = 0.0
             self.world.add_body(segment)
         
         first_segment = AnchorConstraint(self.rope_bodies[0], anchor, 0)
         self.world.add_constraint(first_segment)
 
+        rope_compliance = 0.00001
+
         for i  in range(len(self.rope_bodies) - 1) :
-            connector = DistanceConstraint(self.rope_bodies[i], self.rope_bodies[i+1], segment_length)
+            connector = DistanceConstraint(self.rope_bodies[i], self.rope_bodies[i+1], segment_length, compliance=rope_compliance)
             self.world.add_constraint(connector)
+
+
 
     def handle_event(self, event):
 
