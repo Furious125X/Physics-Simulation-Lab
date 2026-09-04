@@ -1,5 +1,6 @@
 import random
 import pygame
+import math
 
 from physics.body import Body
 from physics.constraints import (
@@ -16,7 +17,7 @@ class ClothScene(Scene):
         super().__init__()
 
         self.world.enable_collisions = False
-        self.world.constraint_iterations = 6
+        self.world.constraint_iterations = 12
         self.world.substeps = 2
 
         rows = 12
@@ -24,6 +25,9 @@ class ClothScene(Scene):
 
         spacing = 25
         radius = 5
+
+        shear_stiffness = 1.0
+        bending_stiffness = 1.0
 
         start_x = 180
         start_y = 40
@@ -57,6 +61,84 @@ class ClothScene(Scene):
             for col in range(cols):
                 constraint = DistanceConstraint(grid[row][col], grid[row + 1][col], spacing)
                 self.world.add_constraint(constraint)
+
+        for row in range(rows - 1):
+
+            for col in range(cols - 1):
+
+                top_left = grid[row][col]
+                top_right = grid[row][col + 1]
+
+                bottom_left = grid[row + 1][col]
+                bottom_right = grid[row + 1][col + 1]
+
+                diagonal_length = spacing * math.sqrt(2)
+
+                constraint_1 = DistanceConstraint(top_left, bottom_right, diagonal_length)
+
+                constraint_2 = DistanceConstraint(top_right, bottom_left, diagonal_length)
+
+                self.world.add_constraint(constraint_1)
+                self.world.add_constraint(constraint_2)
+
+        for row in range(rows):
+
+            for col in range(cols - 2):
+
+                constraint = DistanceConstraint(
+                    grid[row][col],
+                    grid[row][col + 2],
+                    spacing * 2
+                )
+
+                self.world.add_constraint(
+                    constraint
+                )
+
+        for row in range(rows - 2):
+
+            for col in range(cols):
+
+                constraint = DistanceConstraint(
+                    grid[row][col],
+                    grid[row + 2][col],
+                    spacing * 2
+                )
+
+                self.world.add_constraint(
+                    constraint
+                )
+
+
+        for row in range(rows - 2):
+
+            for col in range(cols - 2):
+
+                diagonal_length = (
+                    spacing
+                    * 2
+                    * math.sqrt(2)
+                )
+
+                constraint_1 = DistanceConstraint(
+                    grid[row][col],
+                    grid[row + 2][col + 2],
+                    diagonal_length
+                )
+
+                constraint_2 = DistanceConstraint(
+                    grid[row][col + 2],
+                    grid[row + 2][col],
+                    diagonal_length
+                )
+
+                self.world.add_constraint(
+                    constraint_1
+                )
+
+                self.world.add_constraint(
+                    constraint_2
+                )
 
     def handle_event(self, event):
 
