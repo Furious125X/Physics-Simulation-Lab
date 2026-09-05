@@ -13,6 +13,7 @@ from scenes.inclined_plane_scene import InclinedPlaneScene
 from scenes.atwood_machine_scene import AtwoodMachineScene
 from scenes.orbital_mechanics_scene import OrbitalMechanicsScene
 from scenes.elastic_collision_scene import ElasticCollisionScene
+from scenes.bridge_scene import BridgeScene
 
 
 SCENE_CONFIG = [
@@ -158,6 +159,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_c,
         "scene_class": ElasticCollisionScene
+    },
+
+    {
+        "scene_id": "bridge",
+        "name": "Bridge Simulation",
+        "description": (
+            "Demonstrates structural deformation "
+            "under gravitational loading."
+        ),
+        "shortcut": pygame.K_d,
+        "scene_class": BridgeScene
     },
 
 ]
