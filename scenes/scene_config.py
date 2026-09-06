@@ -14,6 +14,7 @@ from scenes.atwood_machine_scene import AtwoodMachineScene
 from scenes.orbital_mechanics_scene import OrbitalMechanicsScene
 from scenes.elastic_collision_scene import ElasticCollisionScene
 from scenes.bridge_scene import BridgeScene
+from scenes.truss_scene import TrussScene
 
 
 SCENE_CONFIG = [
@@ -171,5 +172,17 @@ SCENE_CONFIG = [
         "shortcut": pygame.K_d,
         "scene_class": BridgeScene
     },
+
+    {
+        "scene_id": "truss",
+        "name": "Truss Simulator",
+        "description": (
+            "Demonstrates triangular structural members "
+            "under gravitational loading."
+        ),
+        "shortcut": pygame.K_e,
+        "scene_class": TrussScene
+    },
+
 
 ]
