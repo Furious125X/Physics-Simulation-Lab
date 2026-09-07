@@ -15,6 +15,8 @@ from scenes.orbital_mechanics_scene import OrbitalMechanicsScene
 from scenes.elastic_collision_scene import ElasticCollisionScene
 from scenes.bridge_scene import BridgeScene
 from scenes.truss_scene import TrussScene
+from scenes.suspension_bridge_scene import SuspensionBridgeScene
+
 
 
 SCENE_CONFIG = [
@@ -182,6 +184,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_e,
         "scene_class": TrussScene
+    },
+
+    {
+        "scene_id": "suspension",
+        "name": "Suspension Simulator",
+        "description": (
+            "Demonstrates stuctural deformation held under tension when "
+            "under gravitational loading."
+        ),
+        "shortcut": pygame.K_f,
+        "scene_class": SuspensionBridgeScene
     },
 
 
