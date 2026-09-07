@@ -10,6 +10,7 @@ from physics.vector import Vector2
 
 from scenes.base_scene import Scene
 
+
 class SuspensionBridgeScene(Scene):
 
     def __init__(self):
@@ -18,7 +19,6 @@ class SuspensionBridgeScene(Scene):
 
         self.world.gravity = 500
         self.world.floor_y = 700
-
 
         self.sections = 12
         self.spacing = 40
@@ -31,6 +31,9 @@ class SuspensionBridgeScene(Scene):
         self.cable_sag = 100
 
         self.node_radius = 7
+
+        self.world.constraint_iterations = 10
+        self.world.substeps = 4
 
         self.cable_bodies = []
 
@@ -68,7 +71,6 @@ class SuspensionBridgeScene(Scene):
 
             self.world.add_body(body)
 
-
         left_anchor = Vector2(
             self.start_x,
             self.cable_y
@@ -83,7 +85,6 @@ class SuspensionBridgeScene(Scene):
         self.world.add_constraint(
             left_constraint
         )
-
 
         right_anchor = Vector2(
             self.start_x
@@ -101,13 +102,17 @@ class SuspensionBridgeScene(Scene):
             right_constraint
         )
 
-
         for i in range(self.sections):
+
+            rest_length = (
+                self.cable_bodies[i + 1].position
+                - self.cable_bodies[i].position
+            ).length()
 
             constraint = DistanceConstraint(
                 self.cable_bodies[i],
                 self.cable_bodies[i + 1],
-                self.spacing,
+                rest_length,
                 compliance=0.00001
             )
 
@@ -120,7 +125,8 @@ class SuspensionBridgeScene(Scene):
         for i in range(self.sections + 1):
 
             body = Body(
-                self.start_x + i * self.spacing,
+                self.start_x
+                + i * self.spacing,
                 self.deck_y,
                 self.node_radius + 2,
                 color=self.random_color()
@@ -135,7 +141,6 @@ class SuspensionBridgeScene(Scene):
 
             self.world.add_body(body)
 
-
         for i in range(self.sections):
 
             constraint = DistanceConstraint(
@@ -148,7 +153,6 @@ class SuspensionBridgeScene(Scene):
             self.world.add_constraint(
                 constraint
             )
-
 
         for i in range(self.sections - 1):
 
@@ -235,7 +239,7 @@ class SuspensionBridgeScene(Scene):
 
             load = Body(
                 x,
-                self.deck_y - 60,
+                self.deck_y - 120,
                 14,
                 density=0.01,
                 color=self.random_color()
@@ -249,7 +253,6 @@ class SuspensionBridgeScene(Scene):
             self.loads.append(load)
 
             self.world.add_body(load)
-
 
     def handle_event(self, event):
 
@@ -272,7 +275,6 @@ class SuspensionBridgeScene(Scene):
 
             self.selected_body = None
 
-
         elif event.type == pygame.MOUSEWHEEL:
 
             mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -294,8 +296,9 @@ class SuspensionBridgeScene(Scene):
 
             self.world.add_body(load)
 
+    def draw(self, renderer):
 
-    def draw(self,renderer) :
+        self.world.draw(renderer)
 
         text = renderer.font.render(
             f"Loads: {len(self.loads)}",
@@ -306,91 +309,4 @@ class SuspensionBridgeScene(Scene):
         renderer.screen.blit(
             text,
             (10, 110)
-        )
-
-        for i in range(self.sections):
-
-            start = renderer.camera.world_to_screen(
-                self.cable_bodies[i].position
-            )
-
-            end = renderer.camera.world_to_screen(
-                self.cable_bodies[i + 1].position
-            )
-
-            pygame.draw.line(
-                renderer.screen,
-                (220, 220, 220),
-                (
-                    int(start.x),
-                    int(start.y)
-                ),
-                (
-                    int(end.x),
-                    int(end.y)
-                ),
-                4
-            )
-
-        for i in range(self.sections):
-
-            start = renderer.camera.world_to_screen(
-                self.deck_bodies[i].position
-            )
-
-            end = renderer.camera.world_to_screen(
-                self.deck_bodies[i + 1].position
-            )
-
-            pygame.draw.line(
-                renderer.screen,
-                (220, 220, 220),
-                (
-                    int(start.x),
-                    int(start.y)
-                ),
-                (
-                    int(end.x),
-                    int(end.y)
-                ),
-                6
-            )
-
-        for constraint in self.hangers:
-
-            start = renderer.camera.world_to_screen(
-                constraint.body1.position
-            )
-
-            end = renderer.camera.world_to_screen(
-                constraint.body2.position
-            )
-
-            pygame.draw.line(
-                renderer.screen,
-                (180, 180, 180),
-                (
-                    int(start.x),
-                    int(start.y)
-                ),
-                (
-                    int(end.x),
-                    int(end.y)
-                ),
-                2
-            )
-
-        left = renderer.camera.world_to_screen(
-            Vector2(
-                self.start_x,
-                self.deck_y
-            )
-        )
-
-        right = renderer.camera.world_to_screen(
-            Vector2(
-                self.start_x
-                + self.sections * self.spacing,
-                self.deck_y
-            )
         )
