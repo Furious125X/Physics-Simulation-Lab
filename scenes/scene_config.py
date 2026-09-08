@@ -16,7 +16,7 @@ from scenes.elastic_collision_scene import ElasticCollisionScene
 from scenes.bridge_scene import BridgeScene
 from scenes.truss_scene import TrussScene
 from scenes.suspension_bridge_scene import SuspensionBridgeScene
-
+from scenes.beam_bending_scene import BeamBendingScene
 
 
 SCENE_CONFIG = [
@@ -195,6 +195,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_f,
         "scene_class": SuspensionBridgeScene
+    },
+
+        {
+        "scene_id": "beam_bending",
+        "name": "Beam Bending",
+        "description": (
+            "Demonstrates structural beam deformation "
+            "under gravitational and external loading."
+        ),
+        "shortcut": pygame.K_g,
+        "scene_class": BeamBendingScene
     },
 
 
