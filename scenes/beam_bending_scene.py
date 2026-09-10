@@ -9,6 +9,7 @@ from physics.vector import Vector2
 
 from scenes.base_scene import Scene
 
+
 class BeamBendingScene(Scene):
 
     def __init__(self):
@@ -18,11 +19,11 @@ class BeamBendingScene(Scene):
         self.world.gravity = 500
         self.world.floor_y = 700
 
-        self.segment_count = 12
+        self.segment_count = 13
         self.segment_spacing = 40
-        self.segment_radius = 8
+        self.segment_radius = 10
 
-        self.start_x = 150
+        self.start_x = 140
         self.beam_y = 250
 
         self.beam_bodies = []
@@ -36,102 +37,87 @@ class BeamBendingScene(Scene):
                 color=self.random_color()
             )
 
-            body.linear_damping = 0.2
+            body.linear_damping = 0.8
             body.restitution = 0.0
             body.static_friction = 0.6
             body.dynamic_friction = 0.4
 
             self.beam_bodies.append(body)
-
             self.world.add_body(body)
 
-
-        anchor = Vector2(
-            self.start_x,
-            self.beam_y
-        )
-
-        anchor_constraint = AnchorConstraint(
+        left_anchor = AnchorConstraint(
             self.beam_bodies[0],
-            anchor,
+            Vector2(
+                self.start_x,
+                self.beam_y
+            ),
             0
         )
 
-        self.world.add_constraint(
-            anchor_constraint
+        right_anchor = AnchorConstraint(
+            self.beam_bodies[-1],
+            Vector2(
+                self.start_x
+                + (self.segment_count - 1)
+                * self.segment_spacing,
+                self.beam_y
+            ),
+            0
         )
 
+        self.world.add_constraint(left_anchor)
+        self.world.add_constraint(right_anchor)
 
-        for i in range(
-            self.segment_count - 1
-        ):
+        for i in range(self.segment_count - 1):
 
             constraint = DistanceConstraint(
                 self.beam_bodies[i],
                 self.beam_bodies[i + 1],
                 self.segment_spacing,
-                compliance=0.000001
+                compliance=0.0
             )
 
-            self.world.add_constraint(
-                constraint
-            )
+            self.world.add_constraint(constraint)
 
-
-        for i in range(
-            self.segment_count - 2
-        ):
+        for i in range(self.segment_count - 2):
 
             constraint = DistanceConstraint(
                 self.beam_bodies[i],
                 self.beam_bodies[i + 2],
                 self.segment_spacing * 2,
-                compliance=0.00001
+                compliance=0.00005
             )
 
-            self.world.add_constraint(
-                constraint
-            )
+            self.world.add_constraint(constraint)
 
+        self.loads = []
 
-        self.load = Body(
+        self.add_load()
+
+    def add_load(self):
+
+        center_x = (
             self.start_x
             + (self.segment_count - 1)
-            * self.segment_spacing,
-            self.beam_y - 60,
-            26,
+            * self.segment_spacing
+            * 0.5
+        )
+
+        load = Body(
+            center_x,
+            self.beam_y - 135,
+            18,
             density=0.01,
             color=self.random_color()
         )
 
-        self.load.linear_damping = 0.2
-        self.load.restitution = 0.0
-        self.load.static_friction = 0.6
-        self.load.dynamic_friction = 0.4
+        load.linear_damping = 0.8
+        load.restitution = 0.0
+        load.static_friction = 0.6
+        load.dynamic_friction = 0.4
 
-        self.world.add_body(
-            self.load
-        )
-
-        self.loads = [
-            self.load
-        ]
-
-        self.load_height = 60
-
-        self.load = Body(
-            self.start_x
-            + (self.segment_count - 1)
-            * self.segment_spacing,
-
-            self.beam_y
-            - self.load_height,
-
-            16,
-            density=0.01,
-            color=self.random_color()
-        )
-
+        self.loads.append(load)
+        self.world.add_body(load)
 
     def handle_event(self, event):
 
@@ -154,32 +140,21 @@ class BeamBendingScene(Scene):
 
             self.selected_body = None
 
-
         elif event.type == pygame.MOUSEWHEEL:
 
-            mouse_x, mouse_y = pygame.mouse.get_pos()
+            self.add_load()
 
-            load = Body(
-                mouse_x,
-                mouse_y,
-                16,
-                density=0.01,
-                color=self.random_color()
-            )
+    def draw(self, renderer):
 
-            load.linear_damping = 0.2
-            load.restitution = 0.0
-            load.static_friction = 0.6
-            load.dynamic_friction = 0.4
+        self.world.draw(renderer)
 
-            self.loads.append(load)
+        total_mass = sum(
+            load.mass
+            for load in self.loads
+        )
 
-            self.world.add_body(load)
-
-
-    def draw(self, renderer) :
         text = renderer.font.render(
-            f"Loads: {len(self.loads)}",
+            f"Loads: {len(self.loads)}   Mass: {total_mass:.2f}",
             True,
             (255, 255, 255)
         )
@@ -188,29 +163,3 @@ class BeamBendingScene(Scene):
             text,
             (10, 110)
         )
-
-        for i in range(
-            self.segment_count - 1
-        ):
-
-            start = renderer.camera.world_to_screen(
-                self.beam_bodies[i].position
-            )
-
-            end = renderer.camera.world_to_screen(
-                self.beam_bodies[i + 1].position
-            )
-
-            pygame.draw.line(
-                renderer.screen,
-                (220, 220, 220),
-                (
-                    int(start.x),
-                    int(start.y)
-                ),
-                (
-                    int(end.x),
-                    int(end.y)
-                ),
-                6
-            )
