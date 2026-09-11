@@ -26,6 +26,9 @@ class BeamBendingScene(Scene):
         self.start_x = 140
         self.beam_y = 250
 
+        self.warning_deflection = 25
+        self.failure_deflection = 50
+
         self.beam_bodies = []
 
         for i in range(self.segment_count):
@@ -44,6 +47,11 @@ class BeamBendingScene(Scene):
 
             self.beam_bodies.append(body)
             self.world.add_body(body)
+
+        self.original_positions = [
+            body.position.copy()
+            for body in self.beam_bodies
+        ]
 
         left_anchor = AnchorConstraint(
             self.beam_bodies[0],
@@ -119,6 +127,26 @@ class BeamBendingScene(Scene):
         self.loads.append(load)
         self.world.add_body(load)
 
+    def get_max_deflection(self):
+
+        max_deflection = 0.0
+
+        for body, original in zip(
+            self.beam_bodies,
+            self.original_positions
+        ):
+
+            deflection = (
+                body.position - original
+            ).length()
+
+            max_deflection = max(
+                max_deflection,
+                deflection
+            )
+
+        return max_deflection
+
     def handle_event(self, event):
 
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -148,13 +176,30 @@ class BeamBendingScene(Scene):
 
         self.world.draw(renderer)
 
+        max_deflection = self.get_max_deflection()
+
+        if max_deflection >= self.failure_deflection:
+            beam_color = (255, 80, 80)
+            status = "FAILURE"
+
+        elif max_deflection >= self.warning_deflection:
+            beam_color = (255, 200, 80)
+            status = "WARNING"
+
+        else:
+            beam_color = (220, 220, 220)
+            status = "STABLE"
+
         total_mass = sum(
             load.mass
             for load in self.loads
         )
 
         text = renderer.font.render(
-            f"Loads: {len(self.loads)}   Mass: {total_mass:.2f}",
+            f"Loads: {len(self.loads)}   "
+            f"Mass: {total_mass:.2f}   "
+            f"Deflection: {max_deflection:.1f}px   "
+            f"{status}",
             True,
             (255, 255, 255)
         )
@@ -163,3 +208,27 @@ class BeamBendingScene(Scene):
             text,
             (10, 110)
         )
+
+        for i in range(self.segment_count - 1):
+
+            start = renderer.camera.world_to_screen(
+                self.beam_bodies[i].position
+            )
+
+            end = renderer.camera.world_to_screen(
+                self.beam_bodies[i + 1].position
+            )
+
+            pygame.draw.line(
+                renderer.screen,
+                beam_color,
+                (
+                    int(start.x),
+                    int(start.y)
+                ),
+                (
+                    int(end.x),
+                    int(end.y)
+                ),
+                6
+            )
