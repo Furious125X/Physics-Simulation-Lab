@@ -17,7 +17,8 @@ from scenes.bridge_scene import BridgeScene
 from scenes.truss_scene import TrussScene
 from scenes.suspension_bridge_scene import SuspensionBridgeScene
 from scenes.beam_bending_scene import BeamBendingScene
-
+from scenes.soft_cube_scene import SoftCubeScene
+from scenes.jelly_ball_scene import JellyBallScene
 
 SCENE_CONFIG = [
 
@@ -197,7 +198,7 @@ SCENE_CONFIG = [
         "scene_class": SuspensionBridgeScene
     },
 
-        {
+    {
         "scene_id": "beam_bending",
         "name": "Beam Bending",
         "description": (
@@ -208,5 +209,24 @@ SCENE_CONFIG = [
         "scene_class": BeamBendingScene
     },
 
+    {
+        "scene_id": "soft_cube",
+        "name": "Soft Cube",
+        "description": (
+            "3D deformable cube built from particles and constraints"
+        ),
+        "shortcut": pygame.K_i,
+        "scene_class":SoftCubeScene
+    },
+
+    {
+        "scene_id": "jelly_ball",
+        "name": "Jelly Ball",
+        "description": (
+            "3D deformable sphere built from particles and constraints"
+        ),
+        "shortcut": pygame.K_j,
+        "scene_class":JellyBallScene
+    },
 
 ]
