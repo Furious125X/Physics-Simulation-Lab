@@ -19,6 +19,7 @@ from scenes.suspension_bridge_scene import SuspensionBridgeScene
 from scenes.beam_bending_scene import BeamBendingScene
 from scenes.soft_cube_scene import SoftCubeScene
 from scenes.jelly_ball_scene import JellyBallScene
+from scenes.soft_bridge_scene import SoftBridgeScene
 
 SCENE_CONFIG = [
 
@@ -228,5 +229,17 @@ SCENE_CONFIG = [
         "shortcut": pygame.K_j,
         "scene_class":JellyBallScene
     },
+
+    {
+        "scene_id": "soft_bridge_scene",
+        "name": "Soft Bridge",
+        "description": (
+            "3D deformable bridge built from bodies and constraints"
+        ),
+        "shortcut": pygame.K_k,
+        "scene_class":SoftBridgeScene
+    },
+
+
 
 ]
