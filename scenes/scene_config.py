@@ -20,6 +20,7 @@ from scenes.beam_bending_scene import BeamBendingScene
 from scenes.soft_cube_scene import SoftCubeScene
 from scenes.jelly_ball_scene import JellyBallScene
 from scenes.soft_bridge_scene import SoftBridgeScene
+from scenes.pressure_scene import PressureScene
 
 SCENE_CONFIG = [
 
@@ -238,6 +239,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_k,
         "scene_class":SoftBridgeScene
+    },
+
+    {
+        "scene_id": "pressure",
+        "name": "Pressure Simulation",
+        "description": (
+            "Demonstrates internal pressure "
+            "maintaining the volume of a deformable body."
+        ),
+        "shortcut": pygame.K_l,
+        "scene_class": PressureScene
     },
 
 
