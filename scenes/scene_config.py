@@ -21,6 +21,7 @@ from scenes.soft_cube_scene import SoftCubeScene
 from scenes.jelly_ball_scene import JellyBallScene
 from scenes.soft_bridge_scene import SoftBridgeScene
 from scenes.pressure_scene import PressureScene
+from scenes.particle_fountain_scene import ParticleFountainScene
 
 SCENE_CONFIG = [
 
@@ -252,6 +253,14 @@ SCENE_CONFIG = [
         "scene_class": PressureScene
     },
 
-
-
+    {
+        "scene_id": "particle_fountain",
+        "name": "Particle Fountain",
+        "description": (
+            "Demonstrates continuously emitted particles "
+            "under gravity and floor collision."
+        ),
+        "shortcut": pygame.K_m,
+        "scene_class": ParticleFountainScene
+    },
 ]
