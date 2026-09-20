@@ -22,6 +22,7 @@ from scenes.jelly_ball_scene import JellyBallScene
 from scenes.soft_bridge_scene import SoftBridgeScene
 from scenes.pressure_scene import PressureScene
 from scenes.particle_fountain_scene import ParticleFountainScene
+from scenes.water_scene import WaterScene
 
 SCENE_CONFIG = [
 
@@ -262,5 +263,16 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_m,
         "scene_class": ParticleFountainScene
+    },
+
+    {
+        "scene_id": "water",
+        "name": "Water Simulation",
+        "description": (
+            "Demonstrates particle-based water "
+            "using density, pressure, and viscosity."
+        ),
+        "shortcut": pygame.K_n,
+        "scene_class": WaterScene
     },
 ]
