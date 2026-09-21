@@ -25,35 +25,39 @@ class WaterScene(Scene):
         self.particle_lifetime = 2.0
 
         self.particle_radius = 5
-        self.particle_density = 0.01
+        self.particle_density = 0.05
 
         self.interaction_radius = 35.0
 
         self.target_density = 3.5
-        self.pressure_strength = 350.0
-        self.surface_tension = 20.0
-        self.viscosity = 0.8
+        self.pressure_strength = 60.0
+        self.cohesion_strength = 5.0
+        self.viscosity = 2.5
 
-        self.max_fluid_force = 1200.0
+        self.max_fluid_force = 100.0
+        self.max_particle_speed = 600.0
 
         self.particles = []
 
         self.densities = {}
         self.pressures = {}
+
         self.average_density = 0.0
 
     def spawn_particle(self):
 
         particle = Body(
-            self.source_x + random.uniform(-25, 25),
-            self.source_y + random.uniform(-25, 25),
+            self.source_x + random.uniform(-12, 12),
+            self.source_y + random.uniform(-4, 4),
             self.particle_radius,
             density=self.particle_density,
             color=(70, 160, 255)
         )
 
+        particle.is_fluid = True
+
         particle.velocity = Vector2(
-            random.uniform(-25, 25),
+            random.uniform(-20, 20),
             random.uniform(20, 50)
         )
 
@@ -80,7 +84,6 @@ class WaterScene(Scene):
     def update_particles(self, dt):
 
         for particle in self.particles:
-
             particle.lifetime += dt
 
     def get_neighbors(self, particle):
@@ -105,6 +108,9 @@ class WaterScene(Scene):
             if other is particle:
                 continue
 
+            if not getattr(other, "is_fluid", False):
+                continue
+
             difference = (
                 particle.position
                 - other.position
@@ -123,7 +129,11 @@ class WaterScene(Scene):
 
         return neighbors
 
-    def calculate_density(self, particle, neighbors):
+    def calculate_density(
+        self,
+        particle,
+        neighbors
+    ):
 
         density = 0.0
 
@@ -154,6 +164,7 @@ class WaterScene(Scene):
         self.pressures = {}
 
         if not self.particles:
+
             self.average_density = 0.0
             return
 
@@ -178,15 +189,10 @@ class WaterScene(Scene):
 
             pressure = (
                 self.pressure_strength
-                * (
-                    density
-                    - self.target_density
+                * max(
+                    density - self.target_density,
+                    0.0
                 )
-            )
-
-            pressure = max(
-                pressure,
-                -self.surface_tension
             )
 
             self.pressures[particle] = pressure
@@ -240,8 +246,7 @@ class WaterScene(Scene):
 
                 influence = (
                     1.0
-                    - distance
-                    / self.interaction_radius
+                    - distance / self.interaction_radius
                 )
 
                 neighbor_pressure = (
@@ -279,6 +284,26 @@ class WaterScene(Scene):
 
                 force += viscosity_force
 
+                if distance < self.particle_radius * 2.5:
+
+                    closeness = (
+                        1.0
+                        - (
+                            distance
+                            / (self.particle_radius * 2.5)
+                        )
+                    )
+
+                    cohesion_force = (
+                        direction
+                        * (
+                            -self.cohesion_strength
+                            * closeness
+                        )
+                    )
+
+                    force += cohesion_force
+
             force_length = force.length()
 
             if force_length > self.max_fluid_force:
@@ -292,6 +317,26 @@ class WaterScene(Scene):
                 force * force_scale
             )
 
+    def limit_particle_speed(self):
+
+        max_speed_squared = (
+            self.max_particle_speed
+            * self.max_particle_speed
+        )
+
+        for particle in self.particles:
+
+            speed_squared = (
+                particle.velocity.length_squared()
+            )
+
+            if speed_squared > max_speed_squared:
+
+                particle.velocity = (
+                    particle.velocity.normalize()
+                    * self.max_particle_speed
+                )
+
     def remove_expired_particles(self):
 
         expired_particles = []
@@ -299,10 +344,7 @@ class WaterScene(Scene):
         for particle in self.particles:
 
             if particle.lifetime >= self.particle_lifetime:
-
-                expired_particles.append(
-                    particle
-                )
+                expired_particles.append(particle)
 
         for particle in expired_particles:
 
@@ -327,6 +369,7 @@ class WaterScene(Scene):
 
         super().update(dt)
 
+        self.limit_particle_speed()
         self.remove_expired_particles()
 
     def handle_event(self, event):
