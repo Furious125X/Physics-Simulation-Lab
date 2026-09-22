@@ -23,6 +23,7 @@ from scenes.soft_bridge_scene import SoftBridgeScene
 from scenes.pressure_scene import PressureScene
 from scenes.particle_fountain_scene import ParticleFountainScene
 from scenes.water_scene import WaterScene
+from scenes.sand_scene import SandScene
 
 SCENE_CONFIG = [
 
@@ -274,5 +275,16 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_n,
         "scene_class": WaterScene
+    },
+
+    {
+        "scene_id": "sand",
+        "name": "Sand Simulation",
+        "description": (
+            "Demonstrates granular sand behavior "
+            "using gravity, collisions, and friction."
+        ),
+        "shortcut": pygame.K_o,
+        "scene_class": SandScene
     },
 ]

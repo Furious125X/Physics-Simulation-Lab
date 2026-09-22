@@ -100,6 +100,9 @@ class World:
                     if body1.is_static and body2.is_static:
                         continue
 
+                    if getattr(body1, "is_fluid", False) and getattr(body2, "is_fluid", False):
+                        continue
+
                     key = (id(body1), id(body2)) if id(body1) < id(body2) else (id(body2), id(body1))
                     if key in contact_keys:
                         continue
@@ -205,6 +208,9 @@ class World:
                     if id(body1) >= id(body2):
                         continue
 
+                    if getattr(body1, "is_fluid", False) and getattr(body2, "is_fluid", False):
+                        continue
+
                     difference = body2.position - body1.position
                     distance = difference.length()
                     radius_sum = body1.radius + body2.radius
@@ -237,6 +243,9 @@ class World:
 
     def resolve_collision(self, body1, body2):
         if body1.is_static and body2.is_static:
+            return
+
+        if getattr(body1, "is_fluid", False) and getattr(body2, "is_fluid", False):
             return
 
         difference = body2.position - body1.position
