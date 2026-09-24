@@ -24,6 +24,7 @@ from scenes.pressure_scene import PressureScene
 from scenes.particle_fountain_scene import ParticleFountainScene
 from scenes.water_scene import WaterScene
 from scenes.sand_scene import SandScene
+from scenes.smoke_scene import SmokeScene
 
 SCENE_CONFIG = [
 
@@ -286,5 +287,16 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_o,
         "scene_class": SandScene
+    },
+
+    {
+        "scene_id": "smoke",
+        "name": "Smoke Particles",
+        "description": (
+            "Demonstrates buoyancy, turbulence, "
+            "and dissipation using particles."
+        ),
+        "shortcut": pygame.K_p,
+        "scene_class": SmokeScene
     },
 ]
