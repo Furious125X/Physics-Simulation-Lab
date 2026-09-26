@@ -75,8 +75,6 @@ class SceneManager:
             if self.switch_scene(event.key):
                 return
 
-            return
-
         self.current_scene.handle_event(event)
 
     def update(self, dt):

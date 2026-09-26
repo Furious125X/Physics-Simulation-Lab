@@ -26,6 +26,7 @@ from scenes.water_scene import WaterScene
 from scenes.sand_scene import SandScene
 from scenes.smoke_scene import SmokeScene
 from scenes.fire_scene import FireScene
+from scenes.wind_scene import WindScene
 
 SCENE_CONFIG = [
 
@@ -310,6 +311,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_q,
         "scene_class": FireScene
+    },
+
+    {
+        "scene_id": "wind",
+        "name": "Wind Simulation",
+        "description": (
+            "Demonstrates external wind forces "
+            "acting on flexible structures."
+        ),
+        "shortcut": pygame.K_s,
+        "scene_class": WindScene
     },
 
 ]
