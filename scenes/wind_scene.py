@@ -142,7 +142,7 @@ class WindScene(Scene):
                         * self.max_wind_force
                     )
 
-                body.apply_force(force)
+                body.apply_force(force*4)
 
     def update(self, dt):
 

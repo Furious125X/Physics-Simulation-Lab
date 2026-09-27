@@ -27,6 +27,7 @@ from scenes.sand_scene import SandScene
 from scenes.smoke_scene import SmokeScene
 from scenes.fire_scene import FireScene
 from scenes.wind_scene import WindScene
+from scenes.magnetism_scene import MagnetismScene
 
 SCENE_CONFIG = [
 
@@ -322,6 +323,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_s,
         "scene_class": WindScene
+    },
+
+    {
+        "scene_id": "magnetism",
+        "name": "Magnetism",
+        "description": (
+            "Demonstrates magnetic attraction and "
+            "repulsion between bodies."
+        ),
+        "shortcut": pygame.K_t,
+        "scene_class": MagnetismScene
     },
 
 ]
