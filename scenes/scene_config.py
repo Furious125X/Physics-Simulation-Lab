@@ -28,6 +28,7 @@ from scenes.smoke_scene import SmokeScene
 from scenes.fire_scene import FireScene
 from scenes.wind_scene import WindScene
 from scenes.magnetism_scene import MagnetismScene
+from scenes.electric_field_scene import ElectricFieldScene
 
 SCENE_CONFIG = [
 
@@ -334,6 +335,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_t,
         "scene_class": MagnetismScene
+    },
+
+    {
+        "scene_id": "electric_field",
+        "name": "Electric Fields",
+        "description": (
+            "Demonstrates electric fields, charge, "
+            "attraction, and repulsion."
+        ),
+        "shortcut": pygame.K_u,
+        "scene_class": ElectricFieldScene
     },
 
 ]
