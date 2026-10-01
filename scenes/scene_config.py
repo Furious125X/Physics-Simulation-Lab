@@ -30,6 +30,7 @@ from scenes.wind_scene import WindScene
 from scenes.magnetism_scene import MagnetismScene
 from scenes.electric_field_scene import ElectricFieldScene
 from scenes.dominos_scene import DominoScene
+from scenes.ragdoll_scene import RagdollScene
 
 SCENE_CONFIG = [
 
@@ -358,6 +359,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_v,
         "scene_class": DominoScene
+    },
+
+    {
+        "scene_id": "ragdoll",
+        "name": "Ragdoll",
+        "description": (
+            "Demonstrates an articulated body "
+            "using connected rigid bodies and constraints."
+        ),
+        "shortcut": pygame.K_w,
+        "scene_class": RagdollScene
     },
 
 ]
