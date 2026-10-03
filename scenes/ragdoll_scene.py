@@ -21,6 +21,8 @@ class RagdollScene(Scene):
 
         self.part_density = 0.0002
 
+        self.break_force = 15000.0
+
         self.parts = {}
         self.connections = []
 
@@ -85,7 +87,8 @@ class RagdollScene(Scene):
             body1,
             body2,
             length,
-            compliance=0.00001
+            compliance=0.00001,
+            break_force=self.break_force
         )
 
         self.world.add_constraint(
@@ -93,7 +96,11 @@ class RagdollScene(Scene):
         )
 
         self.connections.append(
-            (body1, body2)
+            (
+                body1,
+                body2,
+                constraint
+            )
         )
 
     def create_ragdoll(self):
@@ -330,8 +337,35 @@ class RagdollScene(Scene):
         self,
         renderer,
         body1,
-        body2
+        body2,
+        constraint
     ):
+
+        if constraint.broken:
+
+            if constraint.break_position is None:
+                return
+
+            position = (
+                renderer.camera.world_to_screen(
+                    constraint.break_position
+                )
+            )
+
+            pygame.draw.circle(
+                renderer.screen,
+                (255, 70, 70),
+                (
+                    int(position.x),
+                    int(position.y)
+                ),
+                max(
+                    4,
+                    int(6 * renderer.camera.zoom)
+                )
+            )
+
+            return
 
         position1 = (
             renderer.camera.world_to_screen(
@@ -364,13 +398,19 @@ class RagdollScene(Scene):
 
     def draw(self, renderer):
 
-        for body1, body2 in self.connections:
+        broken_count = 0
+
+        for body1, body2, constraint in self.connections:
 
             self.draw_connection(
                 renderer,
                 body1,
-                body2
+                body2,
+                constraint
             )
+
+            if constraint.broken:
+                broken_count += 1
 
         for body in self.parts.values():
 
@@ -381,7 +421,8 @@ class RagdollScene(Scene):
         text = renderer.font.render(
             (
                 f"Parts: {len(self.parts)}  "
-                f"Kick: {self.kick_strength:.0f}"
+                f"Broken: {broken_count}/{len(self.connections)}  "
+                f"Break Force: {self.break_force:.0f}"
             ),
             True,
             (255, 255, 255)

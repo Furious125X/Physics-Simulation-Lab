@@ -37,15 +37,31 @@ class AnchorConstraint:
 
 
 class DistanceConstraint:
-    def __init__(self, body1, body2, length, stiffness=1.0, compliance=0.0):
+    def __init__(
+        self,
+        body1,
+        body2,
+        length,
+        stiffness=1.0,
+        compliance=0.0,
+        break_force=None
+    ):
         self.body1 = body1
         self.body2 = body2
         self.length = length
         self.stiffness = stiffness
         self.compliance = compliance
+        self.break_force = break_force
         self.lambda_accum = 0.0
+        self.current_force = 0.0
+        self.broken = False
+        self.break_position = None
 
     def solve(self, dt):
+
+        if self.broken:
+            return
+
         difference = self.body2.position - self.body1.position
         distance = difference.length()
 
@@ -66,11 +82,33 @@ class DistanceConstraint:
         delta_lambda = (C - alpha * self.lambda_accum) / (total_inverse_mass + alpha)
         self.lambda_accum += delta_lambda
 
+        self.current_force = max(
+            0.0,
+            self.lambda_accum
+        ) / (dt * dt)
+
+        if (
+            self.break_force is not None
+            and self.current_force >= self.break_force
+        ):
+
+            self.broken = True
+
+            self.break_position = (
+                self.body1.position
+                + self.body2.position
+            ) / 2
+
+            return
+
         self.body1.position += direction * delta_lambda * inv_mass1
         self.body2.position -= direction * delta_lambda * inv_mass2
 
     def begin_substep(self):
         self.lambda_accum = 0.0
+
+        if not self.broken:
+            self.current_force = 0.0
 
 
 class AtwoodConstraint:
