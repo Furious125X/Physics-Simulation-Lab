@@ -22,8 +22,9 @@ class SceneDefinition:
 
 class SceneManager:
 
-    def __init__(self):
+    def __init__(self, camera=None):
 
+        self.camera = camera
         self.scene_registry = []
 
         for config in SCENE_CONFIG:
@@ -103,9 +104,14 @@ class SceneManager:
         return None
 
     def create_scene(self, definition):
-        return definition.scene_class()
+
+        scene = definition.scene_class()
+        scene.camera = self.camera
+
+        return scene
 
     def reset_scene(self):
+
         self.activate_scene(
             self.current_scene_definition
         )

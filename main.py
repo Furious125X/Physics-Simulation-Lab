@@ -35,7 +35,9 @@ pygame.display.set_caption("Physics Simulation Lab")
 clock = pygame.time.Clock()
 
 renderer = Renderer(screen)
-scene_manager = SceneManager()
+scene_manager = SceneManager(
+    renderer.camera
+)
 
 
 debug_menu = font.render(

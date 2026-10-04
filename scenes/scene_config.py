@@ -31,6 +31,7 @@ from scenes.magnetism_scene import MagnetismScene
 from scenes.electric_field_scene import ElectricFieldScene
 from scenes.dominos_scene import DominoScene
 from scenes.ragdoll_scene import RagdollScene
+from scenes.editor_scene import EditorScene
 
 SCENE_CONFIG = [
 
@@ -370,6 +371,17 @@ SCENE_CONFIG = [
         ),
         "shortcut": pygame.K_w,
         "scene_class": RagdollScene
+    },
+
+        {
+        "scene_id": "editor",
+        "name": "Body Editor",
+        "description": (
+            "Interactive editor for creating "
+            "rigid bodies with the mouse."
+        ),
+        "shortcut": pygame.K_y,
+        "scene_class": EditorScene
     },
 
 ]
