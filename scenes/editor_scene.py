@@ -1,6 +1,7 @@
 import pygame
 
 from physics.body import Body
+from physics.spring import Spring
 from physics.vector import Vector2
 
 from scenes.base_scene import Scene
@@ -19,6 +20,9 @@ class EditorScene(Scene):
         self.body_density = 0.002
 
         self.drag_offset = Vector2()
+
+        self.spring_stiffness = 100.0
+        self.spring_start_body = None
 
     def create_body(
         self,
@@ -40,7 +44,6 @@ class EditorScene(Scene):
 
         self.world.add_body(body)
 
-
     def delete_body(
         self,
         position
@@ -53,13 +56,76 @@ class EditorScene(Scene):
         if body is None:
             return
 
+        springs_to_remove = []
+
+        for spring in self.world.springs:
+
+            if (
+                spring.body1 is body
+                or spring.body2 is body
+            ):
+
+                springs_to_remove.append(
+                    spring
+                )
+
+        for spring in springs_to_remove:
+
+            self.world.springs.remove(
+                spring
+            )
+
         if self.selected_body is body:
 
             self.selected_body = None
             self.drag_offset = Vector2()
 
+        if self.spring_start_body is body:
+
+            self.spring_start_body = None
+
         self.world.bodies.remove(
             body
+        )
+
+    def create_spring(
+        self,
+        body1,
+        body2
+    ):
+
+        if body1 is body2:
+            return
+
+        for spring in self.world.springs:
+
+            if (
+                (
+                    spring.body1 is body1
+                    and spring.body2 is body2
+                )
+                or
+                (
+                    spring.body1 is body2
+                    and spring.body2 is body1
+                )
+            ):
+                return
+
+        rest_length = (
+            body2.position
+            - body1.position
+        ).length()
+
+        spring = Spring(
+            body1,
+            body2,
+            rest_length,
+            self.spring_stiffness
+        )
+
+        self.world.add_spring(
+            spring
         )
 
     def get_mouse_world_position(self):
@@ -105,6 +171,26 @@ class EditorScene(Scene):
 
     def handle_event(self, event):
 
+        if event.type == pygame.KEYDOWN:
+
+            if event.key == pygame.K_ESCAPE:
+
+                self.spring_start_body = None
+
+            elif event.key == pygame.K_z:
+
+                self.spring_stiffness = max(
+                    25.0,
+                    self.spring_stiffness - 25.0
+                )
+
+            elif event.key == pygame.K_x:
+
+                self.spring_stiffness = min(
+                    1000.0,
+                    self.spring_stiffness + 25.0
+                )
+
         if event.type == pygame.MOUSEBUTTONDOWN:
 
             world_position = (
@@ -119,7 +205,25 @@ class EditorScene(Scene):
                     )
                 )
 
-                if body is not None:
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+
+                    if body is None:
+                        return
+
+                    if self.spring_start_body is None:
+
+                        self.spring_start_body = body
+
+                    else:
+
+                        self.create_spring(
+                            self.spring_start_body,
+                            body
+                        )
+
+                        self.spring_start_body = None
+
+                elif body is not None:
 
                     self.selected_body = body
 
@@ -181,10 +285,40 @@ class EditorScene(Scene):
                 3
             )
 
+        if self.spring_start_body is not None:
+
+            screen_position = (
+                renderer.camera.world_to_screen(
+                    self.spring_start_body.position
+                )
+            )
+
+            pygame.draw.circle(
+                renderer.screen,
+                (255, 120, 80),
+                (
+                    int(screen_position.x),
+                    int(screen_position.y)
+                ),
+                max(
+                    3,
+                    int(
+                        (
+                            self.spring_start_body.radius
+                            + 7
+                        )
+                        * renderer.camera.zoom
+                    )
+                ),
+                3
+            )
+
         text = renderer.font.render(
             (
                 f"Bodies: {len(self.world.bodies)}  "
-                f"Radius: {self.body_radius}"
+                f"Springs: {len(self.world.springs)}  "
+                f"Radius: {self.body_radius}  "
+                f"Stiffness: {self.spring_stiffness:.0f}"
             ),
             True,
             (255, 255, 255)
@@ -207,4 +341,18 @@ class EditorScene(Scene):
         renderer.screen.blit(
             controls,
             (10, 135)
+        )
+
+        spring_controls = renderer.font.render(
+            (
+                "SHIFT + LEFT CLICK: Create Spring  "
+                "ESC: Cancel  Z/X: Stiffness"
+            ),
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            spring_controls,
+            (10, 160)
         )
