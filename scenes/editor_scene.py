@@ -6,6 +6,8 @@ from physics.vector import Vector2
 
 from scenes.base_scene import Scene
 
+from physics.constraints import (AnchorConstraint, DistanceConstraint)
+
 
 class EditorScene(Scene):
 
@@ -23,6 +25,9 @@ class EditorScene(Scene):
 
         self.spring_stiffness = 100.0
         self.spring_start_body = None
+
+        self.constraint_start_body = None
+        self.anchor_start_body = None
 
     def create_body(
         self,
@@ -75,6 +80,26 @@ class EditorScene(Scene):
                 spring
             )
 
+        constraints_to_remove = []
+
+        for constraint in self.world.constraints:
+
+            if (
+                getattr(constraint, "body", None) is body
+                or getattr(constraint, "body1", None) is body
+                or getattr(constraint, "body2", None) is body
+            ):
+
+                constraints_to_remove.append(
+                    constraint
+                )
+
+        for constraint in constraints_to_remove:
+
+            self.world.constraints.remove(
+                constraint
+            )
+
         if self.selected_body is body:
 
             self.selected_body = None
@@ -83,6 +108,14 @@ class EditorScene(Scene):
         if self.spring_start_body is body:
 
             self.spring_start_body = None
+
+        if self.constraint_start_body is body:
+
+            self.constraint_start_body = None
+
+        if self.anchor_start_body is body:
+
+            self.anchor_start_body = None
 
         self.world.bodies.remove(
             body
@@ -126,6 +159,75 @@ class EditorScene(Scene):
 
         self.world.add_spring(
             spring
+        )
+
+    def create_distance_constraint(
+        self,
+        body1,
+        body2
+    ):
+
+        if body1 is body2:
+            return
+
+        for constraint in self.world.constraints:
+
+            if (
+                isinstance(
+                    constraint,
+                    DistanceConstraint
+                )
+                and not constraint.broken
+                and (
+                    (
+                        constraint.body1 is body1
+                        and constraint.body2 is body2
+                    )
+                    or
+                    (
+                        constraint.body1 is body2
+                        and constraint.body2 is body1
+                    )
+                )
+            ):
+                return
+
+        length = (
+            body2.position
+            - body1.position
+        ).length()
+
+        constraint = DistanceConstraint(
+            body1,
+            body2,
+            length,
+            compliance=0.00001
+        )
+
+        self.world.add_constraint(
+            constraint
+        )
+
+    def create_anchor_constraint(
+        self,
+        body,
+        anchor
+    ):
+
+        length = (
+            body.position
+            - anchor
+        ).length()
+
+        constraint = AnchorConstraint(
+            body,
+            anchor.copy(),
+            length,
+            compliance=0.00001
+        )
+
+        self.world.add_constraint(
+            constraint
         )
 
     def get_mouse_world_position(self):
@@ -176,6 +278,11 @@ class EditorScene(Scene):
             if event.key == pygame.K_ESCAPE:
 
                 self.spring_start_body = None
+                self.constraint_start_body = None
+                self.anchor_start_body = None
+
+                self.selected_body = None
+                self.drag_offset = Vector2()
 
             elif event.key == pygame.K_z:
 
@@ -205,7 +312,9 @@ class EditorScene(Scene):
                     )
                 )
 
-                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                modifiers = pygame.key.get_mods()
+
+                if modifiers & pygame.KMOD_SHIFT:
 
                     if body is None:
                         return
@@ -213,6 +322,8 @@ class EditorScene(Scene):
                     if self.spring_start_body is None:
 
                         self.spring_start_body = body
+                        self.constraint_start_body = None
+                        self.anchor_start_body = None
 
                     else:
 
@@ -222,6 +333,46 @@ class EditorScene(Scene):
                         )
 
                         self.spring_start_body = None
+
+                elif modifiers & pygame.KMOD_CTRL:
+
+                    if body is None:
+                        return
+
+                    if self.constraint_start_body is None:
+
+                        self.constraint_start_body = body
+                        self.spring_start_body = None
+                        self.anchor_start_body = None
+
+                    else:
+
+                        self.create_distance_constraint(
+                            self.constraint_start_body,
+                            body
+                        )
+
+                        self.constraint_start_body = None
+
+                elif modifiers & pygame.KMOD_ALT:
+
+                    if self.anchor_start_body is None:
+
+                        if body is None:
+                            return
+
+                        self.anchor_start_body = body
+                        self.spring_start_body = None
+                        self.constraint_start_body = None
+
+                    else:
+
+                        self.create_anchor_constraint(
+                            self.anchor_start_body,
+                            world_position
+                        )
+
+                        self.anchor_start_body = None
 
                 elif body is not None:
 
@@ -259,64 +410,45 @@ class EditorScene(Scene):
 
         if self.selected_body is not None:
 
-            screen_position = (
-                renderer.camera.world_to_screen(
-                    self.selected_body.position
-                )
-            )
-
-            pygame.draw.circle(
-                renderer.screen,
+            self.draw_body_outline(
+                renderer,
+                self.selected_body,
                 (255, 220, 80),
-                (
-                    int(screen_position.x),
-                    int(screen_position.y)
-                ),
-                max(
-                    2,
-                    int(
-                        (
-                            self.selected_body.radius
-                            + 4
-                        )
-                        * renderer.camera.zoom
-                    )
-                ),
-                3
+                4
             )
 
         if self.spring_start_body is not None:
 
-            screen_position = (
-                renderer.camera.world_to_screen(
-                    self.spring_start_body.position
-                )
+            self.draw_body_outline(
+                renderer,
+                self.spring_start_body,
+                (255, 120, 80),
+                7
             )
 
-            pygame.draw.circle(
-                renderer.screen,
-                (255, 120, 80),
-                (
-                    int(screen_position.x),
-                    int(screen_position.y)
-                ),
-                max(
-                    3,
-                    int(
-                        (
-                            self.spring_start_body.radius
-                            + 7
-                        )
-                        * renderer.camera.zoom
-                    )
-                ),
-                3
+        if self.constraint_start_body is not None:
+
+            self.draw_body_outline(
+                renderer,
+                self.constraint_start_body,
+                (100, 220, 255),
+                7
+            )
+
+        if self.anchor_start_body is not None:
+
+            self.draw_body_outline(
+                renderer,
+                self.anchor_start_body,
+                (190, 120, 255),
+                7
             )
 
         text = renderer.font.render(
             (
                 f"Bodies: {len(self.world.bodies)}  "
                 f"Springs: {len(self.world.springs)}  "
+                f"Constraints: {len(self.world.constraints)}  "
                 f"Radius: {self.body_radius}  "
                 f"Stiffness: {self.spring_stiffness:.0f}"
             ),
@@ -345,8 +477,8 @@ class EditorScene(Scene):
 
         spring_controls = renderer.font.render(
             (
-                "SHIFT + LEFT CLICK: Create Spring  "
-                "ESC: Cancel  Z/X: Stiffness"
+                "SHIFT + CLICK x2: Spring  "
+                "Z/X: Stiffness"
             ),
             True,
             (200, 200, 200)
@@ -355,4 +487,52 @@ class EditorScene(Scene):
         renderer.screen.blit(
             spring_controls,
             (10, 160)
+        )
+
+        constraint_controls = renderer.font.render(
+            (
+                "CTRL + CLICK x2: Distance  "
+                "ALT + CLICK: Anchor  ESC: Cancel"
+            ),
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            constraint_controls,
+            (10, 185)
+        )
+
+    def draw_body_outline(
+        self,
+        renderer,
+        body,
+        color,
+        padding
+    ):
+
+        screen_position = (
+            renderer.camera.world_to_screen(
+                body.position
+            )
+        )
+
+        pygame.draw.circle(
+            renderer.screen,
+            color,
+            (
+                int(screen_position.x),
+                int(screen_position.y)
+            ),
+            max(
+                3,
+                int(
+                    (
+                        body.radius
+                        + padding
+                    )
+                    * renderer.camera.zoom
+                )
+            ),
+            3
         )
