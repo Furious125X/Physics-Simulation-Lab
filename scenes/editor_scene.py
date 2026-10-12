@@ -1,4 +1,5 @@
 import pygame
+import math
 
 from physics.body import Body
 from physics.spring import Spring
@@ -29,6 +30,8 @@ class EditorScene(Scene):
         self.constraint_start_body = None
         self.anchor_start_body = None
 
+        self.inspected_body = None
+
     def create_body(
         self,
         position
@@ -48,6 +51,8 @@ class EditorScene(Scene):
         body.dynamic_friction = 0.4
 
         self.world.add_body(body)
+
+        return body
 
     def delete_body(
         self,
@@ -104,6 +109,10 @@ class EditorScene(Scene):
 
             self.selected_body = None
             self.drag_offset = Vector2()
+
+        if self.inspected_body is body:
+
+            self.inspected_body = None
 
         if self.spring_start_body is body:
 
@@ -324,6 +333,7 @@ class EditorScene(Scene):
                         self.spring_start_body = body
                         self.constraint_start_body = None
                         self.anchor_start_body = None
+                        self.inspected_body = body
 
                     else:
 
@@ -344,6 +354,7 @@ class EditorScene(Scene):
                         self.constraint_start_body = body
                         self.spring_start_body = None
                         self.anchor_start_body = None
+                        self.inspected_body = body
 
                     else:
 
@@ -364,6 +375,7 @@ class EditorScene(Scene):
                         self.anchor_start_body = body
                         self.spring_start_body = None
                         self.constraint_start_body = None
+                        self.inspected_body = body
 
                     else:
 
@@ -377,6 +389,7 @@ class EditorScene(Scene):
                 elif body is not None:
 
                     self.selected_body = body
+                    self.inspected_body = body
 
                     self.drag_offset = (
                         body.position
@@ -387,8 +400,10 @@ class EditorScene(Scene):
 
                 else:
 
-                    self.create_body(
-                        world_position
+                    self.inspected_body = (
+                        self.create_body(
+                            world_position
+                        )
                     )
 
             elif event.button == 3:
@@ -503,6 +518,10 @@ class EditorScene(Scene):
             (10, 185)
         )
 
+        self.draw_property_inspector(
+            renderer
+        )
+
     def draw_body_outline(
         self,
         renderer,
@@ -536,3 +555,140 @@ class EditorScene(Scene):
             ),
             3
         )
+
+    def draw_property_inspector(self, renderer):
+
+        panel_rect = pygame.Rect(
+            550,
+            92,
+            240,
+            330
+        )
+
+        pygame.draw.rect(
+            renderer.screen,
+            (18, 18, 24),
+            panel_rect
+        )
+
+        pygame.draw.rect(
+            renderer.screen,
+            (100, 100, 110),
+            panel_rect,
+            1
+        )
+
+        title = renderer.font.render(
+            "PROPERTY INSPECTOR",
+            True,
+            (255, 255, 255)
+        )
+
+        renderer.screen.blit(
+            title,
+            (560, 101)
+        )
+
+        pygame.draw.line(
+            renderer.screen,
+            (100, 100, 110),
+            (560, 128),
+            (780, 128),
+            1
+        )
+
+        body = self.inspected_body
+
+        if body is None:
+
+            text = renderer.font.render(
+                "Click a body to inspect.",
+                True,
+                (180, 180, 180)
+            )
+
+            renderer.screen.blit(
+                text,
+                (560, 140)
+            )
+
+            return
+
+        if body.is_static:
+
+            mass_text = "Infinite"
+            density_text = "N/A"
+
+        else:
+
+            mass_text = f"{body.mass:.3f}"
+
+            if body.radius > 0:
+
+                density = (
+                    body.mass
+                    / (
+                        math.pi
+                        * body.radius
+                        * body.radius
+                    )
+                )
+
+                density_text = f"{density:.5f}"
+
+            else:
+
+                density_text = "N/A"
+
+        body_type = (
+            "Static"
+            if body.is_static
+            else "Dynamic"
+        )
+
+        body_state = (
+            "Sleeping"
+            if body.sleeping
+            else "Awake"
+        )
+
+        properties = [
+            f"ID: {body.id}",
+            f"Type: {body_type}",
+            (
+                f"Pos: "
+                f"{body.position.x:.1f}, "
+                f"{body.position.y:.1f}"
+            ),
+            f"Radius: {body.radius:.1f}",
+            f"Mass: {mass_text}",
+            f"Density: {density_text}",
+            f"Restitution: {body.restitution:.2f}",
+            f"Static friction: {body.static_friction:.2f}",
+            f"Dynamic friction: {body.dynamic_friction:.2f}",
+            (
+                f"Vel: "
+                f"{body.velocity.x:.1f}, "
+                f"{body.velocity.y:.1f}"
+            ),
+            f"Angular vel: {body.angular_velocity:.2f}",
+            f"Angle: {body.angle:.2f} rad",
+            f"State: {body_state}"
+        ]
+
+        y = 135
+
+        for property_text in properties:
+
+            text = renderer.font.render(
+                property_text,
+                True,
+                (220, 220, 220)
+            )
+
+            renderer.screen.blit(
+                text,
+                (560, y)
+            )
+
+            y += 20
