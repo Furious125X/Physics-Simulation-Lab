@@ -54,6 +54,60 @@ class EditorScene(Scene):
 
         return body
 
+    
+    def adjust_body_radius(self, change):
+
+        body = self.inspected_body
+
+        if body is None:
+            return
+
+        new_radius = max(
+            5.0,
+            min(
+                100.0,
+                body.radius + change
+            )
+        )
+
+        if new_radius == body.radius:
+            return
+
+        if not body.is_static:
+
+            density = (
+                body.mass
+                / (
+                    math.pi
+                    * body.radius
+                    * body.radius
+                )
+            )
+
+        body.radius = new_radius
+
+        if not body.is_static:
+
+            body.mass = (
+                density
+                * math.pi
+                * body.radius
+                * body.radius
+            )
+
+            body.inverse_mass = 1 / body.mass
+
+            body.inertia = (
+                0.5
+                * body.mass
+                * body.radius
+                * body.radius
+            )
+
+            body.inverse_inertia = 1 / body.inertia
+
+        body.wake()
+
     def delete_body(
         self,
         position
@@ -307,6 +361,14 @@ class EditorScene(Scene):
                     self.spring_stiffness + 25.0
                 )
 
+            elif event.key == pygame.K_LEFTBRACKET:
+
+                self.adjust_body_radius(-2.0)
+
+            elif event.key == pygame.K_RIGHTBRACKET:
+
+                self.adjust_body_radius(2.0)
+
         if event.type == pygame.MOUSEBUTTONDOWN:
 
             world_position = (
@@ -464,7 +526,7 @@ class EditorScene(Scene):
                 f"Bodies: {len(self.world.bodies)}  "
                 f"Springs: {len(self.world.springs)}  "
                 f"Constraints: {len(self.world.constraints)}  "
-                f"Radius: {self.body_radius}  "
+                f"New Radius: {self.body_radius}  "
                 f"Stiffness: {self.spring_stiffness:.0f}"
             ),
             True,
@@ -516,6 +578,17 @@ class EditorScene(Scene):
         renderer.screen.blit(
             constraint_controls,
             (10, 185)
+        )
+
+        radius_controls = renderer.font.render(
+            "[ / ]: Decrease / Increase Inspected Radius",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            radius_controls,
+            (10, 210)
         )
 
         self.draw_property_inspector(
