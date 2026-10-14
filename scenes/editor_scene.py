@@ -54,7 +54,6 @@ class EditorScene(Scene):
 
         return body
 
-    
     def adjust_body_radius(self, change):
 
         body = self.inspected_body
@@ -105,6 +104,112 @@ class EditorScene(Scene):
             )
 
             body.inverse_inertia = 1 / body.inertia
+
+        body.wake()
+
+    def adjust_body_density(self, factor):
+
+        body = self.inspected_body
+
+        if body is None or body.is_static or body.radius <= 0:
+            return
+
+        density = (
+            body.mass
+            / (
+                math.pi
+                * body.radius
+                * body.radius
+            )
+        )
+
+        new_density = max(
+            0.0001,
+            min(
+                0.1,
+                density * factor
+            )
+        )
+
+        if new_density == density:
+            return
+
+        body.mass = (
+            new_density
+            * math.pi
+            * body.radius
+            * body.radius
+        )
+
+        body.inverse_mass = 1 / body.mass
+
+        body.inertia = (
+            0.5
+            * body.mass
+            * body.radius
+            * body.radius
+        )
+
+        body.inverse_inertia = 1 / body.inertia
+
+        body.wake()
+
+    def adjust_body_restitution(self, change):
+
+        body = self.inspected_body
+
+        if body is None:
+            return
+
+        body.restitution = round(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    body.restitution + change
+                )
+            ),
+            2
+        )
+
+        body.wake()
+
+    def adjust_body_friction(
+        self,
+        friction_type,
+        change
+    ):
+
+        body = self.inspected_body
+
+        if body is None:
+            return
+
+        if friction_type == "static":
+
+            body.static_friction = round(
+                max(
+                    0.0,
+                    min(
+                        1.0,
+                        body.static_friction + change
+                    )
+                ),
+                2
+            )
+
+        elif friction_type == "dynamic":
+
+            body.dynamic_friction = round(
+                max(
+                    0.0,
+                    min(
+                        1.0,
+                        body.dynamic_friction + change
+                    )
+                ),
+                2
+            )
 
         body.wake()
 
@@ -369,6 +474,50 @@ class EditorScene(Scene):
 
                 self.adjust_body_radius(2.0)
 
+            elif event.key == pygame.K_COMMA:
+
+                self.adjust_body_density(0.8)
+
+            elif event.key == pygame.K_PERIOD:
+
+                self.adjust_body_density(1.25)
+
+            elif event.key == pygame.K_QUOTE:
+
+                self.adjust_body_restitution(0.1)
+
+            elif event.key == pygame.K_SEMICOLON:
+
+                self.adjust_body_restitution(-0.1)
+
+            elif event.key == pygame.K_F11:
+
+                self.adjust_body_friction(
+                    "static",
+                    -0.1
+                )
+
+            elif event.key == pygame.K_F12:
+
+                self.adjust_body_friction(
+                    "static",
+                    0.1
+                )
+
+            elif event.key == pygame.K_BACKSLASH:
+
+                self.adjust_body_friction(
+                    "dynamic",
+                    -0.1
+                )
+
+            elif event.key == pygame.K_SLASH:
+
+                self.adjust_body_friction(
+                    "dynamic",
+                    0.1
+                )
+
         if event.type == pygame.MOUSEBUTTONDOWN:
 
             world_position = (
@@ -589,6 +738,39 @@ class EditorScene(Scene):
         renderer.screen.blit(
             radius_controls,
             (10, 210)
+        )
+
+        density_controls = renderer.font.render(
+            ", / .: Decrease / Increase Inspected Density",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            density_controls,
+            (10, 235)
+        )
+
+        restitution_controls = renderer.font.render(
+            "Semicolon / Quote: Decrease / Increase Restitution",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            restitution_controls,
+            (10, 260)
+        )
+
+        friction_controls = renderer.font.render(
+            "F11/F12: Static Friction  HOME/END: Dynamic Friction",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            friction_controls,
+            (10, 285)
         )
 
         self.draw_property_inspector(
