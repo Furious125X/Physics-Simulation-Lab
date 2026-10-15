@@ -32,6 +32,8 @@ class EditorScene(Scene):
 
         self.inspected_body = None
 
+        self.paused = False
+
     def create_body(
         self,
         position
@@ -417,7 +419,8 @@ class EditorScene(Scene):
 
     def update(self, dt):
 
-        self.world.update(dt)
+        if not self.paused:
+            self.world.update(dt)
 
         if self.selected_body is not None:
 
@@ -443,7 +446,11 @@ class EditorScene(Scene):
 
         if event.type == pygame.KEYDOWN:
 
-            if event.key == pygame.K_ESCAPE:
+            if event.key == pygame.K_SPACE:
+
+                self.paused = not self.paused
+
+            elif event.key == pygame.K_ESCAPE:
 
                 self.spring_start_body = None
                 self.constraint_start_body = None
@@ -772,6 +779,30 @@ class EditorScene(Scene):
             friction_controls,
             (10, 285)
         )
+
+        pause_controls = renderer.font.render(
+            "SPACE: Pause / Resume Simulation",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            pause_controls,
+            (10, 310)
+        )
+
+        if self.paused:
+
+            paused_text = renderer.font.render(
+                "PAUSED - Physics frozen",
+                True,
+                (255, 100, 100)
+            )
+
+            renderer.screen.blit(
+                paused_text,
+                (10, 335)
+            )
 
         self.draw_property_inspector(
             renderer
