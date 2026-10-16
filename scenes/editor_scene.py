@@ -33,6 +33,7 @@ class EditorScene(Scene):
         self.inspected_body = None
 
         self.paused = False
+        self.step_requests = 0
 
     def create_body(
         self,
@@ -419,7 +420,14 @@ class EditorScene(Scene):
 
     def update(self, dt):
 
-        if not self.paused:
+        if self.paused:
+
+            if self.step_requests > 0:
+                self.world.update(dt)
+                self.step_requests -= 1
+
+        else:
+            self.step_requests = 0
             self.world.update(dt)
 
         if self.selected_body is not None:
@@ -449,6 +457,11 @@ class EditorScene(Scene):
             if event.key == pygame.K_SPACE:
 
                 self.paused = not self.paused
+
+            elif event.key == pygame.K_RETURN:
+
+                if self.paused:
+                    self.step_requests += 1
 
             elif event.key == pygame.K_ESCAPE:
 
@@ -791,6 +804,17 @@ class EditorScene(Scene):
             (10, 310)
         )
 
+        step_controls = renderer.font.render(
+            "ENTER: Step one physics tick (paused)",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            step_controls,
+            (10, 335)
+        )
+
         if self.paused:
 
             paused_text = renderer.font.render(
@@ -801,7 +825,7 @@ class EditorScene(Scene):
 
             renderer.screen.blit(
                 paused_text,
-                (10, 335)
+                (10, 360)
             )
 
         self.draw_property_inspector(
