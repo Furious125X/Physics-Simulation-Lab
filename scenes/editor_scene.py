@@ -35,6 +35,185 @@ class EditorScene(Scene):
         self.paused = False
         self.step_requests = 0
 
+        self.undo_stack = []
+        self.drag_start_state = None
+
+    def record_undo(self, action):
+
+        self.undo_stack.append(action)
+
+    def capture_property_state(self, body):
+
+        return {
+            "radius": body.radius,
+            "mass": body.mass,
+            "inverse_mass": body.inverse_mass,
+            "inertia": body.inertia,
+            "inverse_inertia": body.inverse_inertia,
+            "restitution": body.restitution,
+            "static_friction": body.static_friction,
+            "dynamic_friction": body.dynamic_friction
+        }
+
+    def capture_transform_state(self, body):
+
+        return {
+            "position": body.position.copy(),
+            "previous_position": body.previous_position.copy(),
+            "velocity": body.velocity.copy(),
+            "angular_velocity": body.angular_velocity,
+            "angle": body.angle
+        }
+
+    def restore_transform_state(self, body, state):
+
+        body.position = state["position"].copy()
+        body.previous_position = state["previous_position"].copy()
+        body.velocity = state["velocity"].copy()
+        body.angular_velocity = state["angular_velocity"]
+        body.angle = state["angle"]
+
+        body.wake()
+
+    def record_property_change(self, body, previous_state):
+
+        current_state = self.capture_property_state(body)
+
+        if current_state != previous_state:
+
+            self.record_undo({
+                "type": "body_properties",
+                "body": body,
+                "state": previous_state
+            })
+
+    def finish_body_drag(self):
+
+        body = self.selected_body
+        previous_state = self.drag_start_state
+
+        if body is not None and previous_state is not None:
+
+            previous_position = previous_state["position"]
+
+            if (
+                body.position.x != previous_position.x
+                or body.position.y != previous_position.y
+            ):
+
+                self.record_undo({
+                    "type": "move_body",
+                    "body": body,
+                    "state": previous_state
+                })
+
+        self.drag_start_state = None
+
+    def undo(self):
+
+        if not self.undo_stack:
+            return
+
+        action = self.undo_stack.pop()
+        action_type = action["type"]
+
+        if action_type == "create_body":
+
+            body = action["body"]
+
+            for spring in list(self.world.springs):
+
+                if spring.body1 is body or spring.body2 is body:
+                    self.world.springs.remove(spring)
+
+            for constraint in list(self.world.constraints):
+
+                if (
+                    getattr(constraint, "body", None) is body
+                    or getattr(constraint, "body1", None) is body
+                    or getattr(constraint, "body2", None) is body
+                ):
+                    self.world.constraints.remove(constraint)
+
+            if body in self.world.bodies:
+                self.world.bodies.remove(body)
+
+            if self.selected_body is body:
+                self.selected_body = None
+                self.drag_offset = Vector2()
+
+            if self.inspected_body is body:
+                self.inspected_body = None
+
+            if self.spring_start_body is body:
+                self.spring_start_body = None
+
+            if self.constraint_start_body is body:
+                self.constraint_start_body = None
+
+            if self.anchor_start_body is body:
+                self.anchor_start_body = None
+
+        elif action_type == "delete_body":
+
+            body = action["body"]
+            body_index = action["body_index"]
+
+            self.world.bodies.insert(
+                min(body_index, len(self.world.bodies)),
+                body
+            )
+
+            for index, spring in sorted(action["springs"]):
+
+                self.world.springs.insert(
+                    min(index, len(self.world.springs)),
+                    spring
+                )
+
+            for index, constraint in sorted(action["constraints"]):
+
+                self.world.constraints.insert(
+                    min(index, len(self.world.constraints)),
+                    constraint
+                )
+
+            self.inspected_body = body
+
+        elif action_type == "create_spring":
+
+            spring = action["spring"]
+
+            if spring in self.world.springs:
+                self.world.springs.remove(spring)
+
+        elif action_type == "create_constraint":
+
+            constraint = action["constraint"]
+
+            if constraint in self.world.constraints:
+                self.world.constraints.remove(constraint)
+
+        elif action_type == "move_body":
+
+            self.restore_transform_state(
+                action["body"],
+                action["state"]
+            )
+
+        elif action_type == "body_properties":
+
+            body = action["body"]
+
+            for name, value in action["state"].items():
+                setattr(body, name, value)
+
+            body.wake()
+
+        elif action_type == "spring_stiffness":
+
+            self.spring_stiffness = action["value"]
+
     def create_body(
         self,
         position
@@ -55,6 +234,11 @@ class EditorScene(Scene):
 
         self.world.add_body(body)
 
+        self.record_undo({
+            "type": "create_body",
+            "body": body
+        })
+
         return body
 
     def adjust_body_radius(self, change):
@@ -63,6 +247,8 @@ class EditorScene(Scene):
 
         if body is None:
             return
+
+        previous_state = self.capture_property_state(body)
 
         new_radius = max(
             5.0,
@@ -109,6 +295,7 @@ class EditorScene(Scene):
             body.inverse_inertia = 1 / body.inertia
 
         body.wake()
+        self.record_property_change(body, previous_state)
 
     def adjust_body_density(self, factor):
 
@@ -116,6 +303,8 @@ class EditorScene(Scene):
 
         if body is None or body.is_static or body.radius <= 0:
             return
+
+        previous_state = self.capture_property_state(body)
 
         density = (
             body.mass
@@ -156,6 +345,7 @@ class EditorScene(Scene):
         body.inverse_inertia = 1 / body.inertia
 
         body.wake()
+        self.record_property_change(body, previous_state)
 
     def adjust_body_restitution(self, change):
 
@@ -163,6 +353,8 @@ class EditorScene(Scene):
 
         if body is None:
             return
+
+        previous_state = self.capture_property_state(body)
 
         body.restitution = round(
             max(
@@ -176,6 +368,7 @@ class EditorScene(Scene):
         )
 
         body.wake()
+        self.record_property_change(body, previous_state)
 
     def adjust_body_friction(
         self,
@@ -187,6 +380,8 @@ class EditorScene(Scene):
 
         if body is None:
             return
+
+        previous_state = self.capture_property_state(body)
 
         if friction_type == "static":
 
@@ -215,6 +410,7 @@ class EditorScene(Scene):
             )
 
         body.wake()
+        self.record_property_change(body, previous_state)
 
     def delete_body(
         self,
@@ -228,18 +424,18 @@ class EditorScene(Scene):
         if body is None:
             return
 
-        springs_to_remove = []
+        body_index = self.world.bodies.index(body)
 
-        for spring in self.world.springs:
+        spring_records = [
+            (index, spring)
+            for index, spring in enumerate(self.world.springs)
+            if spring.body1 is body or spring.body2 is body
+        ]
 
-            if (
-                spring.body1 is body
-                or spring.body2 is body
-            ):
-
-                springs_to_remove.append(
-                    spring
-                )
+        springs_to_remove = [
+            spring
+            for index, spring in spring_records
+        ]
 
         for spring in springs_to_remove:
 
@@ -247,19 +443,20 @@ class EditorScene(Scene):
                 spring
             )
 
-        constraints_to_remove = []
-
-        for constraint in self.world.constraints:
-
+        constraint_records = [
+            (index, constraint)
+            for index, constraint in enumerate(self.world.constraints)
             if (
                 getattr(constraint, "body", None) is body
                 or getattr(constraint, "body1", None) is body
                 or getattr(constraint, "body2", None) is body
-            ):
+            )
+        ]
 
-                constraints_to_remove.append(
-                    constraint
-                )
+        constraints_to_remove = [
+            constraint
+            for index, constraint in constraint_records
+        ]
 
         for constraint in constraints_to_remove:
 
@@ -271,6 +468,7 @@ class EditorScene(Scene):
 
             self.selected_body = None
             self.drag_offset = Vector2()
+            self.drag_start_state = None
 
         if self.inspected_body is body:
 
@@ -291,6 +489,14 @@ class EditorScene(Scene):
         self.world.bodies.remove(
             body
         )
+
+        self.record_undo({
+            "type": "delete_body",
+            "body": body,
+            "body_index": body_index,
+            "springs": spring_records,
+            "constraints": constraint_records
+        })
 
     def create_spring(
         self,
@@ -331,6 +537,11 @@ class EditorScene(Scene):
         self.world.add_spring(
             spring
         )
+
+        self.record_undo({
+            "type": "create_spring",
+            "spring": spring
+        })
 
     def create_distance_constraint(
         self,
@@ -379,6 +590,11 @@ class EditorScene(Scene):
             constraint
         )
 
+        self.record_undo({
+            "type": "create_constraint",
+            "constraint": constraint
+        })
+
     def create_anchor_constraint(
         self,
         body,
@@ -400,6 +616,11 @@ class EditorScene(Scene):
         self.world.add_constraint(
             constraint
         )
+
+        self.record_undo({
+            "type": "create_constraint",
+            "constraint": constraint
+        })
 
     def get_mouse_world_position(self):
 
@@ -454,7 +675,23 @@ class EditorScene(Scene):
 
         if event.type == pygame.KEYDOWN:
 
-            if event.key == pygame.K_SPACE:
+            modifiers = getattr(
+                event,
+                "mod",
+                pygame.key.get_mods()
+            )
+
+            if (
+                event.key == pygame.K_z
+                and modifiers & pygame.KMOD_CTRL
+            ):
+
+                self.finish_body_drag()
+                self.selected_body = None
+                self.drag_offset = Vector2()
+                self.undo()
+
+            elif event.key == pygame.K_SPACE:
 
                 self.paused = not self.paused
 
@@ -465,6 +702,7 @@ class EditorScene(Scene):
 
             elif event.key == pygame.K_ESCAPE:
 
+                self.finish_body_drag()
                 self.spring_start_body = None
                 self.constraint_start_body = None
                 self.anchor_start_body = None
@@ -474,17 +712,35 @@ class EditorScene(Scene):
 
             elif event.key == pygame.K_z:
 
+                previous_stiffness = self.spring_stiffness
+
                 self.spring_stiffness = max(
                     25.0,
                     self.spring_stiffness - 25.0
                 )
 
+                if self.spring_stiffness != previous_stiffness:
+
+                    self.record_undo({
+                        "type": "spring_stiffness",
+                        "value": previous_stiffness
+                    })
+
             elif event.key == pygame.K_x:
+
+                previous_stiffness = self.spring_stiffness
 
                 self.spring_stiffness = min(
                     1000.0,
                     self.spring_stiffness + 25.0
                 )
+
+                if self.spring_stiffness != previous_stiffness:
+
+                    self.record_undo({
+                        "type": "spring_stiffness",
+                        "value": previous_stiffness
+                    })
 
             elif event.key == pygame.K_LEFTBRACKET:
 
@@ -621,6 +877,7 @@ class EditorScene(Scene):
 
                     self.selected_body = body
                     self.inspected_body = body
+                    self.drag_start_state = self.capture_transform_state(body)
 
                     self.drag_offset = (
                         body.position
@@ -647,6 +904,7 @@ class EditorScene(Scene):
 
             if event.button == 1:
 
+                self.finish_body_drag()
                 self.selected_body = None
                 self.drag_offset = Vector2()
 
@@ -815,6 +1073,17 @@ class EditorScene(Scene):
             (10, 335)
         )
 
+        undo_controls = renderer.font.render(
+            "CTRL+Z: Undo Last Edit",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            undo_controls,
+            (10, 360)
+        )
+
         if self.paused:
 
             paused_text = renderer.font.render(
@@ -825,7 +1094,7 @@ class EditorScene(Scene):
 
             renderer.screen.blit(
                 paused_text,
-                (10, 360)
+                (10, 385)
             )
 
         self.draw_property_inspector(
