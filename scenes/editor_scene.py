@@ -36,11 +36,15 @@ class EditorScene(Scene):
         self.step_requests = 0
 
         self.undo_stack = []
+        self.redo_stack = []
+
         self.drag_start_state = None
 
     def record_undo(self, action):
 
         self.undo_stack.append(action)
+
+        self.redo_stack.clear()
 
     def capture_property_state(self, body):
 
@@ -84,7 +88,8 @@ class EditorScene(Scene):
             self.record_undo({
                 "type": "body_properties",
                 "body": body,
-                "state": previous_state
+                "state": previous_state,
+                "redo_state": current_state
             })
 
     def finish_body_drag(self):
@@ -104,7 +109,8 @@ class EditorScene(Scene):
                 self.record_undo({
                     "type": "move_body",
                     "body": body,
-                    "state": previous_state
+                    "state": previous_state,
+                    "redo_state": self.capture_transform_state(body)
                 })
 
         self.drag_start_state = None
@@ -214,6 +220,110 @@ class EditorScene(Scene):
 
             self.spring_stiffness = action["value"]
 
+        self.redo_stack.append(action)
+
+    def redo(self):
+
+        if not self.redo_stack:
+            return
+
+        action = self.redo_stack.pop()
+        action_type = action["type"]
+
+        if action_type == "create_body":
+
+            body = action["body"]
+            body_index = action["body_index"]
+
+            if body not in self.world.bodies:
+
+                self.world.bodies.insert(
+                    min(body_index, len(self.world.bodies)),
+                    body
+                )
+
+            self.inspected_body = body
+
+        elif action_type == "delete_body":
+
+            body = action["body"]
+
+            for _, spring in action["springs"]:
+
+                if spring in self.world.springs:
+                    self.world.springs.remove(spring)
+
+            for _, constraint in action["constraints"]:
+
+                if constraint in self.world.constraints:
+                    self.world.constraints.remove(constraint)
+
+            if body in self.world.bodies:
+                self.world.bodies.remove(body)
+
+            if self.selected_body is body:
+                self.selected_body = None
+                self.drag_offset = Vector2()
+                self.drag_start_state = None
+
+            if self.inspected_body is body:
+                self.inspected_body = None
+
+            if self.spring_start_body is body:
+                self.spring_start_body = None
+
+            if self.constraint_start_body is body:
+                self.constraint_start_body = None
+
+            if self.anchor_start_body is body:
+                self.anchor_start_body = None
+
+        elif action_type == "create_spring":
+
+            spring = action["spring"]
+            spring_index = action["spring_index"]
+
+            if spring not in self.world.springs:
+
+                self.world.springs.insert(
+                    min(spring_index, len(self.world.springs)),
+                    spring
+                )
+
+        elif action_type == "create_constraint":
+
+            constraint = action["constraint"]
+            constraint_index = action["constraint_index"]
+
+            if constraint not in self.world.constraints:
+
+                self.world.constraints.insert(
+                    min(constraint_index, len(self.world.constraints)),
+                    constraint
+                )
+
+        elif action_type == "move_body":
+
+            self.restore_transform_state(
+                action["body"],
+                action["redo_state"]
+            )
+
+        elif action_type == "body_properties":
+
+            body = action["body"]
+
+            for name, value in action["redo_state"].items():
+                setattr(body, name, value)
+
+            body.wake()
+
+        elif action_type == "spring_stiffness":
+
+            self.spring_stiffness = action["redo_value"]
+
+        self.undo_stack.append(action)
+
     def create_body(
         self,
         position
@@ -236,7 +346,8 @@ class EditorScene(Scene):
 
         self.record_undo({
             "type": "create_body",
-            "body": body
+            "body": body,
+            "body_index": self.world.bodies.index(body)
         })
 
         return body
@@ -540,7 +651,8 @@ class EditorScene(Scene):
 
         self.record_undo({
             "type": "create_spring",
-            "spring": spring
+            "spring": spring,
+            "spring_index": self.world.springs.index(spring)
         })
 
     def create_distance_constraint(
@@ -592,7 +704,8 @@ class EditorScene(Scene):
 
         self.record_undo({
             "type": "create_constraint",
-            "constraint": constraint
+            "constraint": constraint,
+            "constraint_index": self.world.constraints.index(constraint)
         })
 
     def create_anchor_constraint(
@@ -619,7 +732,8 @@ class EditorScene(Scene):
 
         self.record_undo({
             "type": "create_constraint",
-            "constraint": constraint
+            "constraint": constraint,
+            "constraint_index": self.world.constraints.index(constraint)
         })
 
     def get_mouse_world_position(self):
@@ -681,7 +795,16 @@ class EditorScene(Scene):
                 pygame.key.get_mods()
             )
 
+            
+            
             if (
+                event.key == pygame.K_y
+                and modifiers & pygame.KMOD_CTRL
+            ) :
+
+                self.redo()
+                
+            elif (
                 event.key == pygame.K_z
                 and modifiers & pygame.KMOD_CTRL
             ):
@@ -723,7 +846,8 @@ class EditorScene(Scene):
 
                     self.record_undo({
                         "type": "spring_stiffness",
-                        "value": previous_stiffness
+                        "value": previous_stiffness,
+                        "redo_value": self.spring_stiffness
                     })
 
             elif event.key == pygame.K_x:
@@ -739,7 +863,8 @@ class EditorScene(Scene):
 
                     self.record_undo({
                         "type": "spring_stiffness",
-                        "value": previous_stiffness
+                        "value": previous_stiffness,
+                        "redo_value": self.spring_stiffness
                     })
 
             elif event.key == pygame.K_LEFTBRACKET:

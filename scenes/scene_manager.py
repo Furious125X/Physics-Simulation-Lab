@@ -73,8 +73,20 @@ class SceneManager:
 
         if event.type == pygame.KEYDOWN:
 
-            if self.switch_scene(event.key):
-                return
+            modifiers = getattr(
+                event,
+                "mod",
+                pygame.key.get_mods()
+            )
+
+            has_control_or_alt = modifiers & (
+                pygame.KMOD_CTRL | pygame.KMOD_ALT
+            )
+
+            if not has_control_or_alt:
+
+                if self.switch_scene(event.key):
+                    return
 
         self.current_scene.handle_event(event)
 
