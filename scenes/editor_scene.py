@@ -1,9 +1,12 @@
 import pygame
 import math
+import json
+import os
 
 from physics.body import Body
 from physics.spring import Spring
 from physics.vector import Vector2
+from physics.world import World
 
 from scenes.base_scene import Scene
 
@@ -39,6 +42,8 @@ class EditorScene(Scene):
         self.redo_stack = []
 
         self.drag_start_state = None
+
+        self.save_message = ""
 
     def record_undo(self, action):
 
@@ -78,6 +83,562 @@ class EditorScene(Scene):
         body.angle = state["angle"]
 
         body.wake()
+
+
+    def serialize_body(self, body):
+
+        if body.is_static:
+            density = None
+        else:
+            density = (
+                body.mass
+                / (math.pi * body.radius * body.radius)
+            )
+
+        return {
+            "id": body.id,
+
+            "position": [
+                body.position.x,
+                body.position.y
+            ],
+
+            "previous_position": [
+                body.previous_position.x,
+                body.previous_position.y
+            ],
+
+            "velocity": [
+                body.velocity.x,
+                body.velocity.y
+            ],
+
+            "radius": body.radius,
+            "density": density,
+            "color": list(body.color),
+            "is_static": body.is_static,
+
+            "angle": body.angle,
+            "angular_velocity": body.angular_velocity,
+
+            "restitution": body.restitution,
+            "static_friction": body.static_friction,
+            "dynamic_friction": body.dynamic_friction,
+            "linear_damping": body.linear_damping,
+
+            "sleeping": body.sleeping,
+            "sleep_timer": body.sleep_timer
+        }
+
+    def serialize_constraint(self, constraint):
+
+        if isinstance(constraint, AnchorConstraint):
+
+            return {
+                "type": "anchor",
+
+                "body_id": constraint.body.id,
+
+                "anchor": [
+                    constraint.anchor.x,
+                    constraint.anchor.y
+                ],
+
+                "length": constraint.length,
+                "compliance": constraint.compliance
+            }
+
+        elif isinstance(constraint, DistanceConstraint):
+
+            if constraint.break_position is None:
+                break_position = None
+            else:
+                break_position = [
+                    constraint.break_position.x,
+                    constraint.break_position.y
+                ]
+
+            return {
+                "type": "distance",
+
+                "body1_id": constraint.body1.id,
+                "body2_id": constraint.body2.id,
+
+                "length": constraint.length,
+                "stiffness": constraint.stiffness,
+                "compliance": constraint.compliance,
+                "break_force": constraint.break_force,
+
+                "broken": constraint.broken,
+                "current_force": constraint.current_force,
+                "break_position": break_position
+            }
+
+        else:
+            raise TypeError(
+                f"Unsupported constraint type: "
+                f"{type(constraint).__name__}"
+            )
+
+
+    def save_scene(self):
+
+        project_root = os.path.dirname(
+            os.path.dirname(
+                os.path.abspath(__file__)
+            )
+        )
+
+        save_directory = os.path.join(
+            project_root,
+            "saved_scenes"
+        )
+
+        save_path = os.path.join(
+            save_directory,
+            "editor_scene.json"
+        )
+
+        try:
+
+            os.makedirs(
+                save_directory,
+                exist_ok=True
+            )
+
+            scene_data = {
+
+                "format_version": 1,
+                "scene_type": "editor",
+
+                "next_body_id": Body.next_id,
+
+                "world": {
+                    "gravity": self.world.gravity,
+                    "floor_y": self.world.floor_y,
+
+                    "enable_collisions": (
+                        self.world.enable_collisions
+                    ),
+
+                    "constraint_iterations": (
+                        self.world.constraint_iterations
+                    ),
+
+                    "substeps": self.world.substeps,
+
+                    "collision_iterations": (
+                        self.world.collision_iterations
+                    ),
+
+                    "resting_velocity_threshold": (
+                        self.world.resting_velocity_threshold
+                    )
+                },
+
+                "editor": {
+                    "body_radius": self.body_radius,
+                    "body_density": self.body_density,
+                    "spring_stiffness": self.spring_stiffness
+                },
+
+                "bodies": [
+                    self.serialize_body(body)
+                    for body in self.world.bodies
+                ],
+
+                "springs": [
+                    {
+                        "body1_id": spring.body1.id,
+                        "body2_id": spring.body2.id,
+                        "rest_length": spring.rest_length,
+                        "stiffness": spring.stiffness,
+                        "width": spring.width
+                    }
+                    for spring in self.world.springs
+                ],
+
+                "constraints": [
+                    self.serialize_constraint(constraint)
+                    for constraint in self.world.constraints
+                ]
+            }
+
+            with open(
+                save_path,
+                "w",
+                encoding="utf-8"
+            ) as file:
+
+                json.dump(
+                    scene_data,
+                    file,
+                    indent=4,
+                    allow_nan=False
+                )
+
+            relative_path = os.path.relpath(
+                save_path,
+                project_root
+            )
+
+            self.save_message = (
+                f"Saved: {relative_path}"
+            )
+
+            print(self.save_message)
+
+        except (OSError, TypeError, ValueError) as error:
+
+            self.save_message = (
+                "Save failed. Check terminal."
+            )
+
+            print(
+                f"Failed to save editor scene: {error}"
+            )
+
+
+    def load_scene(self):
+
+        project_root = os.path.dirname(
+            os.path.dirname(
+                os.path.abspath(__file__)
+            )
+        )
+
+        save_directory = os.path.join(
+            project_root,
+            "saved_scenes"
+        )
+
+        save_path = os.path.join(
+            save_directory,
+            "editor_scene.json"
+        )
+
+        previous_next_body_id = Body.next_id
+
+        try:
+
+            with open(
+                save_path,
+                "r",
+                encoding="utf-8"
+            ) as file:
+
+                scene_data = json.load(file)
+
+            if scene_data.get("format_version") != 1:
+                raise ValueError(
+                    "Unsupported scene format version."
+                )
+
+            if scene_data.get("scene_type") != "editor":
+                raise ValueError(
+                    "This file is not an editor scene."
+                )
+
+            world_data = scene_data["world"]
+            editor_data = scene_data["editor"]
+
+            # ----------------------------------
+            # 1. Reconstruct bodies
+            # ----------------------------------
+
+            loaded_bodies = []
+            bodies_by_id = {}
+
+            for body_data in scene_data["bodies"]:
+
+                density = body_data["density"]
+
+                if density is None:
+                    density = 0.002
+
+                body = Body(
+                    body_data["position"][0],
+                    body_data["position"][1],
+                    radius=body_data["radius"],
+                    density=density,
+                    color=tuple(body_data["color"]),
+                    is_static=body_data["is_static"]
+                )
+
+                # Restore the saved ID.
+                body.id = body_data["id"]
+
+                if body.id in bodies_by_id:
+                    raise ValueError(
+                        f"Duplicate body ID: {body.id}"
+                    )
+
+                # Restore the motion state.
+                body.previous_position = Vector2(
+                    *body_data["previous_position"]
+                )
+
+                body.velocity = Vector2(
+                    *body_data["velocity"]
+                )
+
+                body.angle = body_data["angle"]
+                body.angular_velocity = (
+                    body_data["angular_velocity"]
+                )
+
+                # Restore material properties.
+                body.restitution = body_data["restitution"]
+                body.static_friction = (
+                    body_data["static_friction"]
+                )
+                body.dynamic_friction = (
+                    body_data["dynamic_friction"]
+                )
+                body.linear_damping = (
+                    body_data["linear_damping"]
+                )
+
+                # Restore sleeping state.
+                body.sleeping = (
+                    True
+                    if body.is_static
+                    else body_data["sleeping"]
+                )
+
+                body.sleep_timer = body_data["sleep_timer"]
+                body.gravity = world_data["gravity"]
+
+                # Temporary physics state starts clean.
+                body.force = Vector2()
+                body.torque = 0.0
+                body.impulse_velocity_delta = Vector2()
+                body.hit_floor = False
+                body.debug_force = Vector2()
+
+                bodies_by_id[body.id] = body
+                loaded_bodies.append(body)
+
+            # ----------------------------------
+            # 2. Reconstruct springs
+            # ----------------------------------
+
+            loaded_springs = []
+
+            for spring_data in scene_data["springs"]:
+
+                body1 = bodies_by_id[
+                    spring_data["body1_id"]
+                ]
+
+                body2 = bodies_by_id[
+                    spring_data["body2_id"]
+                ]
+
+                spring = Spring(
+                    body1,
+                    body2,
+                    spring_data["rest_length"],
+                    spring_data["stiffness"]
+                )
+
+                spring.width = spring_data.get(
+                    "width",
+                    2
+                )
+
+                loaded_springs.append(spring)
+
+            # ----------------------------------
+            # 3. Reconstruct constraints
+            # ----------------------------------
+
+            loaded_constraints = []
+
+            for constraint_data in scene_data["constraints"]:
+
+                constraint_type = constraint_data["type"]
+
+                if constraint_type == "anchor":
+
+                    body = bodies_by_id[
+                        constraint_data["body_id"]
+                    ]
+
+                    anchor = Vector2(
+                        *constraint_data["anchor"]
+                    )
+
+                    constraint = AnchorConstraint(
+                        body,
+                        anchor,
+                        constraint_data["length"],
+                        compliance=constraint_data["compliance"]
+                    )
+
+                elif constraint_type == "distance":
+
+                    body1 = bodies_by_id[
+                        constraint_data["body1_id"]
+                    ]
+
+                    body2 = bodies_by_id[
+                        constraint_data["body2_id"]
+                    ]
+
+                    constraint = DistanceConstraint(
+                        body1,
+                        body2,
+                        constraint_data["length"],
+                        stiffness=constraint_data["stiffness"],
+                        compliance=constraint_data["compliance"],
+                        break_force=constraint_data["break_force"]
+                    )
+
+                    constraint.broken = (
+                        constraint_data["broken"]
+                    )
+
+                    constraint.current_force = (
+                        constraint_data["current_force"]
+                    )
+
+                    break_position = constraint_data[
+                        "break_position"
+                    ]
+
+                    if break_position is not None:
+
+                        constraint.break_position = Vector2(
+                            *break_position
+                        )
+
+                else:
+
+                    raise ValueError(
+                        f"Unknown constraint type: "
+                        f"{constraint_type}"
+                    )
+
+                loaded_constraints.append(constraint)
+
+            # ----------------------------------
+            # 4. Reconstruct the world
+            # ----------------------------------
+
+            loaded_world = World(
+                gravity=world_data["gravity"],
+                floor_y=world_data["floor_y"]
+            )
+
+            loaded_world.enable_collisions = (
+                world_data["enable_collisions"]
+            )
+
+            loaded_world.constraint_iterations = (
+                world_data["constraint_iterations"]
+            )
+
+            loaded_world.substeps = world_data["substeps"]
+
+            loaded_world.collision_iterations = (
+                world_data["collision_iterations"]
+            )
+
+            loaded_world.resting_velocity_threshold = (
+                world_data["resting_velocity_threshold"]
+            )
+
+            loaded_world.bodies = loaded_bodies
+            loaded_world.springs = loaded_springs
+            loaded_world.constraints = loaded_constraints
+
+            # Preserve the current debug-display settings.
+            debug_attributes = [
+                "debug_draw",
+                "show_grid_debug",
+                "show_collision_normals",
+                "show_velocity_vectors",
+                "show_force_vectors",
+                "show_bounding_boxes",
+                "show_sleeping"
+            ]
+
+            for attribute in debug_attributes:
+
+                setattr(
+                    loaded_world,
+                    attribute,
+                    getattr(self.world, attribute)
+                )
+
+            # Build the grid immediately, rather than waiting
+            # for the next physics update.
+            loaded_world.grid.build(loaded_world.bodies)
+
+            # ----------------------------------
+            # 5. Replace the active scene
+            # ----------------------------------
+
+            self.world = loaded_world
+
+            self.body_radius = editor_data["body_radius"]
+            self.body_density = editor_data["body_density"]
+            self.spring_stiffness = (
+                editor_data["spring_stiffness"]
+            )
+
+            # Keep future body IDs unique.
+            highest_body_id = max(
+                (body.id for body in loaded_bodies),
+                default=-1
+            )
+
+            Body.next_id = max(
+                scene_data["next_body_id"],
+                highest_body_id + 1
+            )
+
+            # Clear interaction state.
+            self.selected_body = None
+            self.inspected_body = None
+            self.drag_offset = Vector2()
+            self.drag_start_state = None
+
+            self.spring_start_body = None
+            self.constraint_start_body = None
+            self.anchor_start_body = None
+
+            # History refers to the previous world.
+            self.undo_stack.clear()
+            self.redo_stack.clear()
+
+            self.step_requests = 0
+
+            self.save_message = (
+                "Loaded: saved_scenes/editor_scene.json"
+            )
+
+            print(self.save_message)
+
+        except (
+            OSError,
+            ValueError,
+            TypeError,
+            KeyError,
+            IndexError
+        ) as error:
+
+            # Restore the ID counter if loading failed.
+            Body.next_id = previous_next_body_id
+
+            self.save_message = (
+                "Load failed. Check terminal."
+            )
+
+            print(
+                f"Failed to load editor scene: {error}"
+            )
 
     def record_property_change(self, body, previous_state):
 
@@ -795,9 +1356,21 @@ class EditorScene(Scene):
                 pygame.key.get_mods()
             )
 
-            
-            
             if (
+                event.key == pygame.K_o
+                and modifiers & pygame.KMOD_CTRL
+            ):
+
+                self.load_scene()
+
+            elif (
+                event.key == pygame.K_s
+                and modifiers & pygame.KMOD_CTRL
+            ):
+
+                self.save_scene()
+            
+            elif (
                 event.key == pygame.K_y
                 and modifiers & pygame.KMOD_CTRL
             ) :
@@ -1209,6 +1782,28 @@ class EditorScene(Scene):
             (10, 360)
         )
 
+        save_controls = renderer.font.render(
+            "CTRL+S: Save Scene",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            save_controls,
+            (10, 385)
+        )
+
+        load_controls = renderer.font.render(
+            "CTRL+O: Load Scene",
+            True,
+            (200, 200, 200)
+        )
+
+        renderer.screen.blit(
+            load_controls,
+            (10, 410)
+        )
+
         if self.paused:
 
             paused_text = renderer.font.render(
@@ -1220,6 +1815,26 @@ class EditorScene(Scene):
             renderer.screen.blit(
                 paused_text,
                 (10, 385)
+            )
+
+        if self.save_message:
+
+            if self.save_message.startswith(
+                ("Saved:", "Loaded:")
+            ):
+                status_color = (120, 255, 150)
+            else:
+                status_color = (255, 100, 100)
+
+            save_status = renderer.font.render(
+                self.save_message,
+                True,
+                status_color
+            )
+
+            renderer.screen.blit(
+                save_status,
+                (10, 435)
             )
 
         self.draw_property_inspector(
