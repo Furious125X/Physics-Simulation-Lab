@@ -2,6 +2,7 @@ from physics.grid import SpatialGrid
 from physics.vector import Vector2
 import random
 from physics.constraints import DistanceConstraint
+from physics.aabb_tree import AABBTree
 
 
 class World:
@@ -15,6 +16,7 @@ class World:
         self.constraints = []
 
         self.grid = SpatialGrid(100)
+        self.ccd_tree = AABBTree()
 
         self.constraint_iterations = 10
         self.substeps = 4
@@ -89,10 +91,31 @@ class World:
             ccd_contacts = []
 
             body_count = len(self.bodies)
-            for i in range(body_count):
-                body1 = self.bodies[i]
-                for j in range(i + 1, body_count):
-                    body2 = self.bodies[j]
+            # Build swept AABBs for this substep.
+            swept_bounds = {
+                body: self.get_swept_aabb(body)
+                for body in self.bodies
+            }
+
+            self.ccd_tree.build(
+                swept_bounds.items()
+            )
+
+            ccd_contacts = []
+
+            # Query the tree instead of scanning every body pair.
+            for body1 in self.bodies:
+
+                bounds1 = swept_bounds[body1]
+
+                for body2 in self.ccd_tree.query(bounds1):
+
+                    if body1 is body2:
+                        continue
+
+                    # Process each pair only once.
+                    if id(body1) >= id(body2):
+                        continue
 
                     if body1.sleeping and body2.sleeping:
                         continue
@@ -100,16 +123,32 @@ class World:
                     if body1.is_static and body2.is_static:
                         continue
 
-                    if getattr(body1, "is_fluid", False) and getattr(body2, "is_fluid", False):
+                    if (
+                        getattr(body1, "is_fluid", False)
+                        and getattr(body2, "is_fluid", False)
+                    ):
                         continue
 
-                    key = (id(body1), id(body2)) if id(body1) < id(body2) else (id(body2), id(body1))
+                    key = (
+                        id(body1),
+                        id(body2)
+                    )
+
+                    # Discrete collision detection has already
+                    # identified these current-overlap pairs.
                     if key in contact_keys:
                         continue
 
-                    t = self.sweep_circle_contact(body1, body2)
+                    t = self.sweep_circle_contact(
+                        body1,
+                        body2
+                    )
+
                     if t is not None:
-                        ccd_contacts.append((t, body1, body2))
+
+                        ccd_contacts.append(
+                            (t, body1, body2)
+                        )
 
             ccd_contacts.sort(key=lambda item: item[0])
 
@@ -188,35 +227,77 @@ class World:
         renderer.draw_spatial_grid_debug(self.grid)
 
     def check_collisions(self):
-        cells = list(self.grid.cells.items())
+
         contacts = []
+        seen_pairs = set()
+
+        # Each body may occur in several cells.
+        # Reverse traversal preserves alternating solver order.
+        cells = list(self.grid.cells.values())
 
         if self.reverse_solver:
             cells.reverse()
 
-        for (cell_x, cell_y), cell in cells:
-            neighbor_bodies = self.grid.get_neighbor_cells(cell_x, cell_y)
+        for cell_bodies in cells:
 
-            for body1 in cell:
-                for body2 in neighbor_bodies:
+            if self.reverse_solver:
+                cell_bodies = list(reversed(cell_bodies))
+
+            # Compare pairs within this cell.
+            for i in range(len(cell_bodies)):
+
+                body1 = cell_bodies[i]
+
+                for j in range(i + 1, len(cell_bodies)):
+
+                    body2 = cell_bodies[j]
+
                     if body1 is body2:
                         continue
 
+                    # Avoid testing the same pair in multiple cells.
+                    id1 = id(body1)
+                    id2 = id(body2)
+
+                    key = (
+                        (id1, id2)
+                        if id1 < id2
+                        else (id2, id1)
+                    )
+
+                    if key in seen_pairs:
+                        continue
+
+                    seen_pairs.add(key)
+
+                    # Preserve existing collision exclusions.
                     if body1.sleeping and body2.sleeping:
                         continue
 
-                    if id(body1) >= id(body2):
+                    if body1.is_static and body2.is_static:
                         continue
 
-                    if getattr(body1, "is_fluid", False) and getattr(body2, "is_fluid", False):
+                    if (
+                        getattr(body1, "is_fluid", False)
+                        and getattr(body2, "is_fluid", False)
+                    ):
                         continue
 
-                    difference = body2.position - body1.position
-                    distance = difference.length()
+                    difference = (
+                        body2.position - body1.position
+                    )
+
                     radius_sum = body1.radius + body2.radius
 
-                    if distance < radius_sum:
-                        contacts.append((body1, body2))
+                    # Exact circle-overlap test.
+                    if (
+                        difference.length_squared()
+                        < radius_sum * radius_sum
+                    ):
+
+                        contacts.append(
+                            (body1, body2)
+                        )
 
         return contacts
 
@@ -502,17 +583,60 @@ class World:
 
         return min(valid_times)
 
+    def get_swept_aabb(self, body):
+
+        previous = body.previous_position
+        current = body.position
+        radius = body.radius
+
+        return (
+            min(previous.x, current.x) - radius,
+            min(previous.y, current.y) - radius,
+            max(previous.x, current.x) + radius,
+            max(previous.y, current.y) + radius
+        )
+
     def wake_neighbours(self, body):
-        cell_x = int(body.position.x // self.grid.cell_size)
-        cell_y = int(body.position.y // self.grid.cell_size)
 
-        for neighbour in self.grid.get_neighbor_cells(cell_x, cell_y):
-            if neighbour is body:
-                continue
+        seen_neighbours = set()
 
-            difference = neighbour.position - body.position
-            if difference.length_squared() <= (body.radius + neighbour.radius) ** 2:
-                neighbour.wake()
+        occupied_cells = (
+            self.grid.get_occupied_cells(body)
+        )
+
+        for cell_key in occupied_cells:
+
+            cell_bodies = self.grid.cells.get(
+                cell_key,
+                []
+            )
+
+            for neighbour in cell_bodies:
+
+                if neighbour is body:
+                    continue
+
+                neighbour_id = id(neighbour)
+
+                if neighbour_id in seen_neighbours:
+                    continue
+
+                seen_neighbours.add(neighbour_id)
+
+                difference = (
+                    neighbour.position - body.position
+                )
+
+                radius_sum = (
+                    body.radius + neighbour.radius
+                )
+
+                if (
+                    difference.length_squared()
+                    <= radius_sum * radius_sum
+                ):
+
+                    neighbour.wake()
 
 
     def build_islands(self, contacts):

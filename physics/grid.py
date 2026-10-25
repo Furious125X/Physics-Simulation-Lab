@@ -4,20 +4,53 @@ class SpatialGrid:
         self.cell_size = cell_size
         self.cells = {}
 
+        # Records which cells each body was inserted into.
+        self.body_cells = {}
+
     def clear(self):
         self.cells = {}
+        self.body_cells = {}
+
+    def get_body_cells(self, body):
+
+        left, top, right, bottom = body.get_aabb()
+
+        min_cell_x = int(left // self.cell_size)
+        max_cell_x = int(right // self.cell_size)
+
+        min_cell_y = int(top // self.cell_size)
+        max_cell_y = int(bottom // self.cell_size)
+
+        occupied_cells = []
+
+        for cell_x in range(
+            min_cell_x,
+            max_cell_x + 1
+        ):
+
+            for cell_y in range(
+                min_cell_y,
+                max_cell_y + 1
+            ):
+
+                occupied_cells.append(
+                    (cell_x, cell_y)
+                )
+
+        return occupied_cells
 
     def insert(self, body):
 
-        cell_x = int(body.position.x // self.cell_size)
-        cell_y = int(body.position.y // self.cell_size)
+        occupied_cells = self.get_body_cells(body)
 
-        key = (cell_x, cell_y)
+        self.body_cells[body] = occupied_cells
 
-        if key not in self.cells:
-            self.cells[key] = []
+        for key in occupied_cells:
 
-        self.cells[key].append(body)
+            if key not in self.cells:
+                self.cells[key] = []
+
+            self.cells[key].append(body)
 
     def build(self, bodies):
 
@@ -26,6 +59,10 @@ class SpatialGrid:
         for body in bodies:
             self.insert(body)
 
+    def get_occupied_cells(self, body):
+
+        return self.body_cells.get(body, [])
+
     def get_neighbor_cells(self, cell_x, cell_y):
 
         neighbors = []
@@ -33,7 +70,10 @@ class SpatialGrid:
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
 
-                key = (cell_x + dx, cell_y + dy)
+                key = (
+                    cell_x + dx,
+                    cell_y + dy
+                )
 
                 if key in self.cells:
                     neighbors.extend(self.cells[key])
