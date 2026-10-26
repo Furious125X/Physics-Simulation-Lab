@@ -6,6 +6,7 @@ from physics.body import Body
 from physics.vector import Vector2
 
 from scenes.base_scene import Scene
+from physics.body_pool import BodyPool
 
 
 class SmokeScene(Scene):
@@ -37,24 +38,23 @@ class SmokeScene(Scene):
         self.max_particle_speed = 350.0
 
         self.particles = []
+        self.particle_pool = BodyPool(
+            max_size=self.max_particles
+        )
 
     def spawn_particle(self):
 
         if len(self.particles) >= self.max_particles:
             return
 
-        particle = Body(
+        particle = self.particle_pool.acquire(
             self.source_x
             + random.uniform(
                 -self.source_width / 2,
                 self.source_width / 2
             ),
-            self.source_y
-            + random.uniform(
-                -3,
-                3
-            ),
-            self.particle_radius,
+            self.source_y + random.uniform(-3, 3),
+            radius=self.particle_radius,
             density=self.particle_density,
             color=(
                 random.randint(170, 200),
@@ -177,8 +177,12 @@ class SmokeScene(Scene):
             if self.selected_body is particle:
                 self.selected_body = None
 
+            self.world.grid.remove(particle)
+
             self.particles.remove(particle)
             self.world.bodies.remove(particle)
+
+            self.particle_pool.release(particle)
 
     def update(self, dt):
 

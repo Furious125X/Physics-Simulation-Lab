@@ -52,6 +52,26 @@ class SpatialGrid:
 
             self.cells[key].append(body)
 
+    def remove(self, body):
+
+        occupied_cells = self.body_cells.pop(
+            body,
+            []
+        )
+
+        for key in occupied_cells:
+
+            cell_bodies = self.cells.get(key)
+
+            if cell_bodies is None:
+                continue
+
+            if body in cell_bodies:
+                cell_bodies.remove(body)
+
+            if not cell_bodies:
+                del self.cells[key]
+
     def build(self, bodies):
 
         self.clear()

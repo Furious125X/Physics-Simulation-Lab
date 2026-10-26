@@ -5,6 +5,7 @@ from physics.body import Body
 from physics.vector import Vector2
 
 from scenes.base_scene import Scene
+from physics.body_pool import BodyPool
 
 
 class WaterScene(Scene):
@@ -38,6 +39,7 @@ class WaterScene(Scene):
         self.max_particle_speed = 600.0
 
         self.particles = []
+        self.particle_pool = BodyPool(max_size=128)
 
         self.densities = {}
         self.pressures = {}
@@ -46,10 +48,10 @@ class WaterScene(Scene):
 
     def spawn_particle(self):
 
-        particle = Body(
+        particle = self.particle_pool.acquire(
             self.source_x + random.uniform(-12, 12),
             self.source_y + random.uniform(-4, 4),
-            self.particle_radius,
+            radius=self.particle_radius,
             density=self.particle_density,
             color=(70, 160, 255)
         )
@@ -351,13 +353,12 @@ class WaterScene(Scene):
             if self.selected_body is particle:
                 self.selected_body = None
 
-            self.particles.remove(
-                particle
-            )
+            self.world.grid.remove(particle)
 
-            self.world.bodies.remove(
-                particle
-            )
+            self.particles.remove(particle)
+            self.world.bodies.remove(particle)
+
+            self.particle_pool.release(particle)
 
     def update(self, dt):
 

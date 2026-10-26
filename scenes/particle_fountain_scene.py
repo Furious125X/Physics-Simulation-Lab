@@ -5,6 +5,7 @@ from physics.body import Body
 from physics.vector import Vector2
 
 from scenes.base_scene import Scene
+from physics.body_pool import BodyPool
 
 
 class ParticleFountainScene(Scene):
@@ -25,6 +26,7 @@ class ParticleFountainScene(Scene):
         self.spawn_interval = 0.2
 
         self.particles = []
+        self.particle_pool = BodyPool(max_size=128)
 
         self.particle_lifetime = 2.0
 
@@ -32,10 +34,10 @@ class ParticleFountainScene(Scene):
         offset = self.spawn_offset if self.offset_positive else -self.spawn_offset
         self.offset_positive = not self.offset_positive
         
-        particle = Body(
+        particle = self.particle_pool.acquire(
             self.fountain_x + offset,
             self.fountain_y,
-            20,
+            radius=20,
             density=0.001,
             color=self.random_color()
         )
@@ -93,8 +95,15 @@ class ParticleFountainScene(Scene):
 
         for particle in expired_particles:
 
+            if self.selected_body is particle:
+                self.selected_body = None
+
+            self.world.grid.remove(particle)
+
             self.particles.remove(particle)
             self.world.bodies.remove(particle)
+
+            self.particle_pool.release(particle)
 
 
     def handle_event(self, event):
