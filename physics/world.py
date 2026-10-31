@@ -15,6 +15,8 @@ class World:
         self.springs = []
         self.constraints = []
 
+        self.constraint_batches = []
+
         self.grid = SpatialGrid(100)
         self.ccd_tree = AABBTree()
 
@@ -45,6 +47,47 @@ class World:
     def add_constraint(self, constraint):
         self.constraints.append(constraint)
 
+    def build_constraint_batches(self):
+
+        batches = []
+        batch_bodies = []
+
+        for constraint in self.constraints:
+
+            # Identify which dynamic bodies this
+            # constraint can modify.
+            affected_bodies = set(
+                constraint.get_dynamic_bodies()
+            )
+
+            placed = False
+
+            # Find the first batch without shared bodies.
+            for index, used_bodies in enumerate(batch_bodies):
+
+                if affected_bodies.isdisjoint(used_bodies):
+
+                    batches[index].append(constraint)
+
+                    used_bodies.update(
+                        affected_bodies
+                    )
+
+                    placed = True
+                    break
+
+            # No existing batch was suitable.
+            if not placed:
+
+                batches.append([constraint])
+
+                batch_bodies.append(
+                    set(affected_bodies)
+                )
+
+        return batches
+
+
     def update(self, dt):
         sub_dt = dt / self.substeps
         self.debug_contacts = []
@@ -70,15 +113,27 @@ class World:
                 constraint.begin_substep()
 
             for _ in range(self.constraint_iterations):
+
                 if len(self.constraints) > 1:
                     random.shuffle(self.constraints)
 
-                for constraint in self.constraints:
-                    constraint.solve(sub_dt)
+                # Build independent constraint batches.
+                self.constraint_batches = (
+                    self.build_constraint_batches()
+                )
 
+                # Process each batch sequentially.
+                for batch in self.constraint_batches:
+
+                    for constraint in batch:
+                        constraint.solve(sub_dt)
+
+                # Preserve the existing floor resolution.
                 for body in self.bodies:
+
                     if body.sleeping or body.is_static:
                         continue
+
                     self.resolve_floor_contact(body)
 
             self.grid.build(self.bodies)

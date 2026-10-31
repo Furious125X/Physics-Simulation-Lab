@@ -2,6 +2,21 @@ class AABBNode:
 
     def __init__(
         self,
+        bounds=None,
+        body=None,
+        left=None,
+        right=None
+    ):
+
+        self.reset(
+            bounds,
+            body,
+            left,
+            right
+        )
+
+    def reset(
+        self,
         bounds,
         body=None,
         left=None,
@@ -15,14 +30,32 @@ class AABBNode:
 
     @property
     def is_leaf(self):
-        return self.left is None and self.right is None
+
+        return (
+            self.left is None
+            and self.right is None
+        )
 
 
 class AABBTree:
 
-    def __init__(self):
+    def __init__(self, max_pool_size=None):
+
         self.root = None
         self.body_count = 0
+
+        self.node_pool = []
+
+        self.max_pool_size = max_pool_size
+
+        self.created_node_count = 0
+        self.reused_node_count = 0
+
+        self.active_node_count = 0
+
+    @property
+    def pooled_node_count(self):
+        return len(self.node_pool)
 
     @staticmethod
     def combine(bounds1, bounds2):
@@ -46,12 +79,14 @@ class AABBTree:
 
     def build(self, proxies):
 
+        # Recycle nodes from the previous tree.
+        self.recycle_tree()
+
         entries = list(proxies)
 
         self.body_count = len(entries)
 
         if not entries:
-            self.root = None
             return
 
         self.root = self._build_node(entries)
@@ -72,7 +107,7 @@ class AABBTree:
 
             body, body_bounds = entries[0]
 
-            return AABBNode(
+            return self.acquire_node(
                 body_bounds,
                 body=body
             )
@@ -107,7 +142,7 @@ class AABBTree:
             entries[midpoint:]
         )
 
-        return AABBNode(
+        return self.acquire_node(
             self.combine(
                 left.bounds,
                 right.bounds
@@ -145,3 +180,80 @@ class AABBTree:
                 stack.append(node.right)
 
         return results
+
+
+    def acquire_node(
+        self,
+        bounds,
+        body=None,
+        left=None,
+        right=None
+    ):
+
+        if self.node_pool:
+
+            node = self.node_pool.pop()
+
+            node.reset(
+                bounds,
+                body,
+                left,
+                right
+            )
+
+            self.reused_node_count += 1
+
+        else:
+
+            node = AABBNode(
+                bounds,
+                body,
+                left,
+                right
+            )
+
+            self.created_node_count += 1
+
+        self.active_node_count += 1
+
+        return node
+
+
+    def recycle_tree(self):
+
+        if self.root is None:
+            self.active_node_count = 0
+            return
+
+        stack = [self.root]
+
+        while stack:
+
+            node = stack.pop()
+
+            # Save child references before resetting.
+            left = node.left
+            right = node.right
+
+            if left is not None:
+                stack.append(left)
+
+            if right is not None:
+                stack.append(right)
+
+            # Remove references to the previous tree.
+            node.reset(None)
+
+            # Store the node if pool capacity allows.
+            if (
+                self.max_pool_size is None
+                or len(self.node_pool) < self.max_pool_size
+            ):
+
+                self.node_pool.append(node)
+
+        self.root = None
+        self.active_node_count = 0
+
+
+    

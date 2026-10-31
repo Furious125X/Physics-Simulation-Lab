@@ -9,6 +9,13 @@ class AnchorConstraint:
         self.compliance = compliance
         self.lambda_accum = 0.0
 
+    def get_dynamic_bodies(self):
+
+        if self.body.inverse_mass > 0:
+            return (self.body,)
+
+        return ()
+    
     def solve(self, dt):
         difference = self.body.position - self.anchor
         distance = difference.length()
@@ -57,6 +64,21 @@ class DistanceConstraint:
         self.broken = False
         self.break_position = None
 
+    def get_dynamic_bodies(self):
+
+        if self.broken:
+            return ()
+
+        bodies = []
+
+        if self.body1.inverse_mass > 0:
+            bodies.append(self.body1)
+
+        if self.body2.inverse_mass > 0:
+            bodies.append(self.body2)
+
+        return tuple(bodies)
+    
     def solve(self, dt):
 
         if self.broken:
@@ -127,6 +149,18 @@ class AtwoodConstraint:
         self.length = length
         self.compliance = compliance
         self.lambda_accum = 0.0
+
+    def get_dynamic_bodies(self):
+
+        bodies = []
+
+        if self.body1.inverse_mass > 0:
+            bodies.append(self.body1)
+
+        if self.body2.inverse_mass > 0:
+            bodies.append(self.body2)
+
+        return tuple(bodies)
 
     def solve(self, dt):
 
