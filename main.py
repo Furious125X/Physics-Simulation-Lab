@@ -51,6 +51,7 @@ debug_menu = font.render(
 debug = False
 show_scene_help = True
 show_all_scene_help = False
+show_profiler = False
 
 running = True
 accumulator = 0
@@ -189,6 +190,10 @@ while running:
                 )
                 continue
 
+            elif event.key == pygame.K_F11:
+                show_profiler = not show_profiler
+                continue
+
         scene_manager.handle_event(event)
 
     while accumulator >= FIXED_DT:
@@ -233,6 +238,11 @@ while running:
     screen.blit(
         menu,
         (10, 10)
+    )
+
+    profiler_font = pygame.font.SysFont(
+        None,
+        18
     )
 
     fps_text = font.render(
@@ -295,6 +305,92 @@ while running:
             )
 
             y += 24
+
+   
+    if show_profiler:
+
+        profiler = scene_manager.world.profiler
+        averages = profiler.get_averages()
+
+        rows = [
+            ("World update", "World update"),
+            ("Springs", "Spring updates"),
+            ("Body integration", "Body integration"),
+            ("Constraint setup", "Constraint setup"),
+            ("Constraint batches", "Constraint batch building"),
+            ("Constraint solving", "Constraint solving"),
+            ("Constraint floor", "Constraint floor resolution"),
+            ("Spatial grid", "Spatial grid build"),
+            ("Discrete collisions", "Discrete collision detection"),
+            ("Swept AABBs", "Swept AABB build"),
+            ("CCD tree", "CCD tree build"),
+            ("CCD queries", "CCD queries and sweep tests"),
+            ("CCD resolution", "CCD resolution"),
+            ("Collision resolution", "Collision resolution"),
+            ("Velocity / sleep", "Velocity and body sleep"),
+            ("Island sleep", "Island sleep")
+        ]
+
+        panel_width = 280
+        panel_height = 30 + len(rows) * 18
+
+        panel_x = WIDTH - panel_width - 10
+        panel_y = 70
+
+        pygame.draw.rect(
+            screen,
+            (0, 0, 0),
+            (
+                panel_x,
+                panel_y,
+                panel_width,
+                panel_height
+            )
+        )
+
+        title = profiler_font.render(
+            "PHYSICS PROFILER (average ms)",
+            True,
+            (255, 220, 100)
+        )
+
+        screen.blit(
+            title,
+            (panel_x + 8, panel_y + 7)
+        )
+
+        y = panel_y + 32
+
+        for label, key in rows:
+
+            value = averages.get(key, 0.0)
+
+            label_surface = profiler_font.render(
+                label,
+                True,
+                (220, 220, 220)
+            )
+
+            value_surface = profiler_font.render(
+                f"{value:.3f} ms",
+                True,
+                (100, 220, 150)
+            )
+
+            screen.blit(
+                label_surface,
+                (panel_x + 8, y)
+            )
+
+            screen.blit(
+                value_surface,
+                (
+                    panel_x + panel_width - value_surface.get_width() - 8,
+                    y
+                )
+            )
+
+            y += 18
 
     pygame.display.flip()
 

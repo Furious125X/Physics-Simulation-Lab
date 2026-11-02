@@ -3,7 +3,7 @@ from physics.vector import Vector2
 import random
 from physics.constraints import DistanceConstraint
 from physics.aabb_tree import AABBTree
-
+from physics.profiler import Profiler
 
 class World:
 
@@ -37,6 +37,10 @@ class World:
         self.show_bounding_boxes = False
         self.show_sleeping = False
         self.debug_contacts = []
+
+        self.profiler = Profiler(
+            history_size=120
+        )
 
     def add_body(self, body):
         self.bodies.append(body)
@@ -89,6 +93,11 @@ class World:
 
 
     def update(self, dt):
+
+        self.profiler.begin_sample()
+
+        update_start = self.profiler.start_timer()
+
         sub_dt = dt / self.substeps
         self.debug_contacts = []
 
@@ -98,37 +107,80 @@ class World:
                 body.hit_floor = False
                 body.impulse_velocity_delta = Vector2()
 
+            # Spring updates
+            stage_start = self.profiler.start_timer()
+
             for spring in self.springs:
                 spring.update()
 
+            self.profiler.end_timer(
+                "Spring updates",
+                stage_start
+            )
+
+            # Body integration
+            stage_start = self.profiler.start_timer()
+
             for body in self.bodies:
+
                 if body.sleeping or body.is_static:
                     continue
+
                 body.gravity = self.gravity
                 body.integrate_forces(sub_dt)
                 body.integrate_velocity(sub_dt)
                 self.sweep_floor_contact(body)
 
+            self.profiler.end_timer(
+                "Body integration",
+                stage_start
+            )
+
+            # Constraint setup
+            stage_start = self.profiler.start_timer()
+
             for constraint in self.constraints:
                 constraint.begin_substep()
 
+            self.profiler.end_timer(
+                "Constraint setup",
+                stage_start
+            )
+
+            # Constraint iterations
             for _ in range(self.constraint_iterations):
 
                 if len(self.constraints) > 1:
                     random.shuffle(self.constraints)
 
-                # Build independent constraint batches.
+                # Build independent constraint batches
+                stage_start = self.profiler.start_timer()
+
                 self.constraint_batches = (
                     self.build_constraint_batches()
                 )
 
-                # Process each batch sequentially.
+                self.profiler.end_timer(
+                    "Constraint batch building",
+                    stage_start
+                )
+
+                # Solve constraints
+                stage_start = self.profiler.start_timer()
+
                 for batch in self.constraint_batches:
 
                     for constraint in batch:
                         constraint.solve(sub_dt)
 
-                # Preserve the existing floor resolution.
+                self.profiler.end_timer(
+                    "Constraint solving",
+                    stage_start
+                )
+
+                # Floor resolution after constraint solving
+                stage_start = self.profiler.start_timer()
+
                 for body in self.bodies:
 
                     if body.sleeping or body.is_static:
@@ -136,29 +188,77 @@ class World:
 
                     self.resolve_floor_contact(body)
 
+                self.profiler.end_timer(
+                    "Constraint floor resolution",
+                    stage_start
+                )
+
+            # Spatial grid
+            stage_start = self.profiler.start_timer()
+
             self.grid.build(self.bodies)
+
+            self.profiler.end_timer(
+                "Spatial grid build",
+                stage_start
+            )
+
+            # Discrete collision detection
+            stage_start = self.profiler.start_timer()
+
             contacts = self.check_collisions()
+
             contact_keys = set()
+
             for body1, body2 in contacts:
-                key = (id(body1), id(body2)) if id(body1) < id(body2) else (id(body2), id(body1))
+
+                key = (
+                    (id(body1), id(body2))
+                    if id(body1) < id(body2)
+                    else (id(body2), id(body1))
+                )
+
                 contact_keys.add(key)
+
+            self.profiler.end_timer(
+                "Discrete collision detection",
+                stage_start
+            )
 
             ccd_contacts = []
 
             body_count = len(self.bodies)
-            # Build swept AABBs for this substep.
+
+            # Build swept AABBs
+            stage_start = self.profiler.start_timer()
+
             swept_bounds = {
                 body: self.get_swept_aabb(body)
                 for body in self.bodies
             }
 
+            self.profiler.end_timer(
+                "Swept AABB build",
+                stage_start
+            )
+
+            # Build CCD tree
+            stage_start = self.profiler.start_timer()
+
             self.ccd_tree.build(
                 swept_bounds.items()
             )
 
+            self.profiler.end_timer(
+                "CCD tree build",
+                stage_start
+            )
+
+            # CCD candidate queries and sweep tests
+            stage_start = self.profiler.start_timer()
+
             ccd_contacts = []
 
-            # Query the tree instead of scanning every body pair.
             for body1 in self.bodies:
 
                 bounds1 = swept_bounds[body1]
@@ -168,7 +268,6 @@ class World:
                     if body1 is body2:
                         continue
 
-                    # Process each pair only once.
                     if id(body1) >= id(body2):
                         continue
 
@@ -189,8 +288,6 @@ class World:
                         id(body2)
                     )
 
-                    # Discrete collision detection has already
-                    # identified these current-overlap pairs.
                     if key in contact_keys:
                         continue
 
@@ -205,30 +302,89 @@ class World:
                             (t, body1, body2)
                         )
 
-            ccd_contacts.sort(key=lambda item: item[0])
+            ccd_contacts.sort(
+                key=lambda item: item[0]
+            )
+
+            self.profiler.end_timer(
+                "CCD queries and sweep tests",
+                stage_start
+            )
+
+            # Resolve CCD contacts
+            stage_start = self.profiler.start_timer()
 
             for t, body1, body2 in ccd_contacts:
-                self.resolve_ccd_contact(body1, body2, t, sub_dt)
+
+                self.resolve_ccd_contact(
+                    body1,
+                    body2,
+                    t,
+                    sub_dt
+                )
+
+            self.profiler.end_timer(
+                "CCD resolution",
+                stage_start
+            )
+
+            # Collision resolution iterations
+            stage_start = self.profiler.start_timer()
 
             for _ in range(self.collision_iterations):
+
                 for body1, body2 in contacts:
                     self.resolve_collision(body1, body2)
 
                 for body in self.bodies:
+
                     if body.sleeping or body.is_static:
                         continue
+
                     self.resolve_floor_contact(body)
 
+            self.profiler.end_timer(
+                "Collision resolution",
+                stage_start
+            )
+
+            # Velocity reconstruction and sleeping
+            stage_start = self.profiler.start_timer()
+
             for body in self.bodies:
+
                 if body.sleeping or body.is_static:
                     continue
+
                 body.update_velocity(sub_dt)
                 body.clear_forces()
                 body.update_sleep(sub_dt)
 
+            self.profiler.end_timer(
+                "Velocity and body sleep",
+                stage_start
+            )
+
+            # Island sleeping
+            stage_start = self.profiler.start_timer()
+
             self.apply_island_sleep(contacts)
 
+            self.profiler.end_timer(
+                "Island sleep",
+                stage_start
+            )
+
             self.reverse_solver = not self.reverse_solver
+
+        # Complete physics update
+        self.profiler.end_timer(
+            "World update",
+            update_start
+        )
+
+        self.profiler.finish_sample()
+        
 
     def draw(self, renderer):
         for spring in self.springs:
