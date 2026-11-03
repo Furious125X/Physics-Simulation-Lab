@@ -32,6 +32,7 @@ from scenes.electric_field_scene import ElectricFieldScene
 from scenes.dominos_scene import DominoScene
 from scenes.ragdoll_scene import RagdollScene
 from scenes.editor_scene import EditorScene
+from scenes.benchmark_scenes import ( BodyBenchmarkScene, CollisionBenchmarkScene, ConstraintBenchmarkScene)
 
 SCENE_CONFIG = [
 
@@ -383,5 +384,39 @@ SCENE_CONFIG = [
         "shortcut": pygame.K_y,
         "scene_class": EditorScene
     },
+
+    {
+        "scene_id": "body_benchmark",
+        "name": "Body Benchmark",
+        "description": (
+            "Tests body integration and general processing "
+            "using 300 continuously awake bodies."
+        ),
+        "shortcut": pygame.K_x,
+        "scene_class": BodyBenchmarkScene
+    },
+
+    {
+        "scene_id": "collision_benchmark",
+        "name": "Collision Benchmark",
+        "description": (
+            "Tests collision detection and resolution "
+            "using a dense pile of 80 bodies."
+        ),
+        "shortcut": pygame.K_z,
+        "scene_class": CollisionBenchmarkScene
+    },
+
+    {
+        "scene_id": "constraint_benchmark",
+        "name": "Constraint Benchmark",
+        "description": (
+            "Tests constraint batching and solving "
+            "using a deformable structure."
+        ),
+        "shortcut": pygame.K_F12,
+        "scene_class": ConstraintBenchmarkScene
+    },
+    
 
 ]
