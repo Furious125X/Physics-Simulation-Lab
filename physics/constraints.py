@@ -49,14 +49,12 @@ class DistanceConstraint:
         body1,
         body2,
         length,
-        stiffness=1.0,
         compliance=0.0,
         break_force=None
     ):
         self.body1 = body1
         self.body2 = body2
         self.length = length
-        self.stiffness = stiffness
         self.compliance = compliance
         self.break_force = break_force
         self.lambda_accum = 0.0

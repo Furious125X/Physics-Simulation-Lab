@@ -165,7 +165,6 @@ class EditorScene(Scene):
                 "body2_id": constraint.body2.id,
 
                 "length": constraint.length,
-                "stiffness": constraint.stiffness,
                 "compliance": constraint.compliance,
                 "break_force": constraint.break_force,
 
@@ -490,7 +489,6 @@ class EditorScene(Scene):
                         body1,
                         body2,
                         constraint_data["length"],
-                        stiffness=constraint_data["stiffness"],
                         compliance=constraint_data["compliance"],
                         break_force=constraint_data["break_force"]
                     )
