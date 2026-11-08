@@ -102,7 +102,7 @@ class WaterScene(Scene):
 
         neighbors = []
 
-        for other in self.world.grid.get_neighbor_cells(
+        for other in self.world.grid.get_bodies_in_neighbor_cells(
             cell_x,
             cell_y
         ):

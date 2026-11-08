@@ -81,13 +81,16 @@ class SpatialGrid:
 
     def get_occupied_cells(self, body):
 
-        return self.body_cells.get(body, [])
+        return tuple(self.body_cells.get(body, ()))
 
-    def get_neighbor_cells(self, cell_x, cell_y):
+
+    def get_bodies_in_neighbor_cells(self, cell_x, cell_y):
 
         neighbors = []
+        seen_bodies = set()
 
         for dx in (-1, 0, 1):
+
             for dy in (-1, 0, 1):
 
                 key = (
@@ -95,7 +98,12 @@ class SpatialGrid:
                     cell_y + dy
                 )
 
-                if key in self.cells:
-                    neighbors.extend(self.cells[key])
+                for body in self.cells.get(key, []):
+
+                    if body in seen_bodies:
+                        continue
+
+                    seen_bodies.add(body)
+                    neighbors.append(body)
 
         return neighbors
