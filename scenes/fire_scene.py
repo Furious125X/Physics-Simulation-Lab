@@ -2,7 +2,6 @@ import math
 import random
 import pygame
 
-from physics.body import Body
 from physics.vector import Vector2
 
 from scenes.base_scene import Scene
