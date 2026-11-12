@@ -37,6 +37,12 @@ class AnchorConstraint:
         delta_lambda = (C - alpha * self.lambda_accum) / (inv_mass + alpha)
         self.lambda_accum += delta_lambda
 
+        # XPBD compliance is scaled by dt² so constraint behaviour
+        # remains less dependent on the simulation timestep.
+
+        # Accumulate the constraint multiplier across solver
+        # iterations within the current substep.
+
         self.body.position -= direction * delta_lambda * inv_mass
 
     def begin_substep(self):
@@ -102,6 +108,8 @@ class DistanceConstraint:
         delta_lambda = (C - alpha * self.lambda_accum) / (total_inverse_mass + alpha)
         self.lambda_accum += delta_lambda
 
+        # Only positive constraint multipliers contribute to the
+        # tensile force used for break-force detection.        
         self.current_force = max(
             0.0,
             self.lambda_accum
@@ -121,6 +129,8 @@ class DistanceConstraint:
 
             return
 
+        # Distribute positional corrections according to inverse mass.
+        # A static body has zero inverse mass and receives no correction.
         self.body1.position += direction * delta_lambda * inv_mass1
         self.body2.position -= direction * delta_lambda * inv_mass2
 
@@ -185,6 +195,8 @@ class AtwoodConstraint:
         direction1 = difference1 / distance1
         direction2 = difference2 / distance2
 
+        # The rope consists of two segments running from the pulley
+        # to each body, so their combined length must remain constant.
         C = (
             distance1
             + distance2

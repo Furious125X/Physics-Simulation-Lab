@@ -21,6 +21,12 @@ class SceneDefinition:
 
 
 class SceneManager:
+    """
+    Manages scene registration, creation, switching and resetting.
+
+    Each scene is constructed from its corresponding SceneDefinition
+    and receives the shared renderer camera.
+    """
 
     def __init__(self, camera=None):
 

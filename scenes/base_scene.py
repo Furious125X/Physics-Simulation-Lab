@@ -6,6 +6,13 @@ from physics.world import World
 
 
 class Scene:
+    """
+    Base class for physics demonstrations.
+
+    Each scene creates and configures its own World through setup().
+    Individual scenes can override update(), draw() and handle_event()
+    to implement their own behaviour.
+    """
 
     def __init__(self):
         self.selected_body = None

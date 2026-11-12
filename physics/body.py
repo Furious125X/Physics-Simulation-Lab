@@ -58,12 +58,14 @@ class Body:
         self.debug_force = Vector2()
 
     def integrate_forces(self, dt):
+        #gravity and damping are both added to same force accumulator as external forces to keep force integration centralized.
         gravity_force = Vector2(0, self.mass * self.gravity)
         self.apply_force(gravity_force)
 
         damping_force = -self.velocity * self.linear_damping * self.mass
         self.apply_force(damping_force)
 
+        #Preserve total force for force-vector debug renderer.
         self.debug_force = self.force.copy()
         
         acceleration = self.force / self.mass
@@ -87,8 +89,9 @@ class Body:
                 self.velocity.y = 0
 
     def update_velocity(self, dt):
+        #this accounts for postional changes made by constraints and collision resolution during physics update.
         reconstructed_velocity = (self.position - self.previous_position) / dt
-
+        #collision impulses modify velcotiy directly so their contribution must be added back.
         self.velocity.x = (reconstructed_velocity.x + self.impulse_velocity_delta.x)
 
         if not self.hit_floor:

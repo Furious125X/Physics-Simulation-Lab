@@ -98,18 +98,22 @@ class World:
 
         update_start = self.profiler.start_timer()
 
+        # Divide each frame into smaller physics steps to improve
+        # numerical stability and reduce tunnelling.
         sub_dt = dt / self.substeps
         self.debug_contacts = []
 
         for _ in range(self.substeps):
-
+            # Reset per-substep collision state before the solver
+            # accumulates new impulses and resolves floor contacts.
             for body in self.bodies:
                 body.hit_floor = False
                 body.impulse_velocity_delta = Vector2()
 
             # Spring updates
             stage_start = self.profiler.start_timer()
-
+            # Apply spring forces before force integration so they
+            # contribute to the current physics substep.
             for spring in self.springs:
                 spring.update()
 
@@ -290,6 +294,9 @@ class World:
 
                     if key in contact_keys:
                         continue
+
+                    # Discrete collision detection already identified this pair,
+                    # so avoid resolving the same collision again through CCD.
 
                     t = self.sweep_circle_contact(
                         body1,
